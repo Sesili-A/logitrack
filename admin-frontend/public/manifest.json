@@ -1,0 +1,18 @@
+{
+  "name": "logiTrack Attendance Portal",
+  "short_name": "logiTrack",
+  "description": "Weekly Payroll & Attendance tracking for Contractors",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
+    }
+  ]
+}
