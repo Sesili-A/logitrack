@@ -79,7 +79,7 @@ export default function Dashboard() {
       <p style={{ fontSize: "11px", fontWeight: 700, color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "12px" }}>
         Today's Attendance
       </p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "16px", marginBottom: "24px" }}>
+      <div className="dash-grid-5" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "16px", marginBottom: "24px" }}>
         <StatCard icon={Users}       label="Total Workers"  value={stats?.totalEmployees ?? "—"} color="#6366f1" bg="rgba(99,102,241,0.1)"  onClick={() => navigate("/employees")} />
         <StatCard icon={CheckSquare} label="Present Today"  value={stats?.present ?? "—"}        color="#10b981" bg="rgba(16,185,129,0.1)"  onClick={() => navigate("/attendance")} />
         <StatCard icon={XCircle}     label="Absent Today"   value={stats?.absent ?? "—"}         color="#ef4444" bg="rgba(239,68,68,0.1)"   onClick={() => navigate("/attendance")} />
@@ -91,7 +91,7 @@ export default function Dashboard() {
       <p style={{ fontSize: "11px", fontWeight: 700, color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "12px" }}>
         This Week's Payroll Summary
       </p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
+      <div className="dash-grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
         <StatCard icon={Calculator}   label="Gross Wages (this week)"  value={fmtRupee(stats?.weeklyGross)}   color="#6366f1" bg="rgba(99,102,241,0.1)"  onClick={() => navigate("/payroll")} />
         <StatCard icon={Banknote}     label="Total Advances (this week)" value={fmtRupee(stats?.weeklyAdvance)} color="#ef4444" bg="rgba(239,68,68,0.1)"   onClick={() => navigate("/advances")} />
         <StatCard icon={Receipt}      label="Net Payable (this week)"  value={fmtRupee(stats?.weeklyNet)}     color="#10b981" bg="rgba(16,185,129,0.1)"  onClick={() => navigate("/payroll")}
@@ -156,7 +156,7 @@ export default function Dashboard() {
       </div>
 
       {/* Quick actions */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginTop: "18px" }}>
+      <div className="dash-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginTop: "18px" }}>
         {[
           { label: "Mark Today's Attendance", desc: "Record who worked today", color: "#6366f1", path: "/attendance", icon: CalendarCheck },
           { label: "View Weekly Payroll",     desc: "See what to pay this weekend", color: "#10b981", path: "/payroll",    icon: Calculator },

@@ -98,3 +98,63 @@ body {
   color: #4f46e5;
   border: 1px solid rgba(99, 102, 241, 0.3);
 }
+
+/* Mobile Responsive Overrides */
+@media (max-width: 768px) {
+  /* Layout */
+  .layout-sidebar {
+    width: 100% !important;
+    height: auto !important;
+    position: relative !important;
+    flex-direction: column !important;
+  }
+  .sidebar-nav {
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    padding: 10px !important;
+    white-space: nowrap !important;
+  }
+  .sidebar-nav a {
+    padding: 8px 14px !important;
+  }
+  .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  .top-header {
+    padding: 0 15px !important;
+  }
+  .search-bar {
+    width: 140px !important;
+    display: none !important; /* Hide search on mobile for space */
+  }
+
+  /* Dashboard */
+  .dash-grid-5 { grid-template-columns: 1fr 1fr !important; }
+  .dash-grid-3 { grid-template-columns: 1fr !important; }
+  .dash-grid-2 { grid-template-columns: 1fr !important; }
+
+  /* Login Page */
+  .login-wrapper {
+    flex-direction: column !important;
+    overflow-y: auto !important;
+  }
+  .login-left {
+    padding: 30px 20px !important;
+    text-align: center !important;
+  }
+  .login-left h1 {
+    font-size: 36px !important;
+  }
+  .login-stats {
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+  .login-right {
+    width: 100% !important;
+    padding: 20px !important;
+  }
+  .login-box {
+    padding: 24px !important;
+  }
+}

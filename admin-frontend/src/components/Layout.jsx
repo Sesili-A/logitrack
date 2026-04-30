@@ -61,7 +61,7 @@ export default function Layout({ children }) {
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#f1f5f9" }}>
       {/* Sidebar */}
-      <aside style={{
+      <aside className="layout-sidebar" style={{
         width: "235px", background: "#0f172a",
         display: "flex", flexDirection: "column",
         position: "fixed", top: 0, left: 0, height: "100vh",
@@ -89,7 +89,7 @@ export default function Layout({ children }) {
         </div>
 
         {/* Nav */}
-        <nav style={{ flex: 1, padding: "12px 8px", display: "flex", flexDirection: "column", gap: "2px" }}>
+        <nav className="sidebar-nav" style={{ flex: 1, padding: "12px 8px", display: "flex", flexDirection: "column", gap: "2px" }}>
           <div style={{
             color: "#475569", fontSize: "10px", fontWeight: 700,
             letterSpacing: "0.1em", padding: "8px 8px 4px", textTransform: "uppercase",
@@ -160,15 +160,15 @@ export default function Layout({ children }) {
       </aside>
 
       {/* Main */}
-      <div style={{ flex: 1, marginLeft: "235px", display: "flex", flexDirection: "column" }}>
+      <div className="main-content" style={{ flex: 1, marginLeft: "235px", display: "flex", flexDirection: "column" }}>
         {/* Topbar */}
-        <header style={{
+        <header className="top-header" style={{
           position: "sticky", top: 0, zIndex: 40,
           background: "rgba(255,255,255,0.92)", backdropFilter: "blur(12px)",
           borderBottom: "1px solid #e2e8f0", padding: "0 26px", height: "58px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
-          <div style={{
+          <div className="search-bar" style={{
             display: "flex", alignItems: "center", gap: "9px",
             background: "#f8fafc", border: "1px solid #e2e8f0",
             borderRadius: "10px", padding: "8px 13px", width: "260px",

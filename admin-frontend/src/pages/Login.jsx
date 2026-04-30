@@ -31,6 +31,7 @@ export default function Login() {
 
   return (
     <div
+      className="login-wrapper"
       style={{
         minHeight: "100vh",
         display: "flex",
@@ -65,6 +66,7 @@ export default function Login() {
 
       {/* Left panel (branding) */}
       <div
+        className="login-left"
         style={{
           flex: 1,
           display: "flex",
@@ -121,7 +123,7 @@ export default function Login() {
         </p>
 
         {/* Stats row */}
-        <div style={{ display: "flex", gap: "32px", marginTop: "48px" }}>
+        <div className="login-stats" style={{ display: "flex", gap: "32px", marginTop: "48px" }}>
           {[
             { value: "10K+", label: "Employees" },
             { value: "99.9%", label: "Uptime" },
@@ -137,6 +139,7 @@ export default function Login() {
 
       {/* Right panel (form) */}
       <div
+        className="login-right"
         style={{
           width: "480px",
           display: "flex",
@@ -146,6 +149,7 @@ export default function Login() {
         }}
       >
         <div
+          className="login-box"
           style={{
             background: "rgba(255,255,255,0.04)",
             backdropFilter: "blur(20px)",
