@@ -57,20 +57,33 @@ export default function Dashboard() {
 
   return (
     <Layout>
+      <style>{`
+        .dash-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; }
+        .dash-clock  { background: #0f172a; border-radius: 14px; padding: 11px 18px; display: flex; align-items: center; gap: 10px; }
+        .dash-grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
+        .dash-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+        .dash-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
+        @media (max-width: 768px) {
+          .dash-header { gap: 10px; }
+          .dash-clock-label { display: none; }
+          .dash-clock { padding: 9px 13px; }
+          .dash-grid-5 { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
+          .dash-grid-3 { grid-template-columns: 1fr !important; gap: 10px; }
+          .dash-grid-2 { grid-template-columns: 1fr !important; gap: 10px; }
+        }
+      `}</style>
+
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "26px" }}>
+      <div className="dash-header">
         <div>
           <h1 style={{ fontSize: "22px", fontWeight: 800, color: "#0f172a", marginBottom: "3px" }}>Dashboard</h1>
           <p style={{ color: "#64748b", fontSize: "13px" }}>{formatDate(time)}</p>
         </div>
-        <div style={{
-          background: "#0f172a", borderRadius: "14px", padding: "11px 18px",
-          display: "flex", alignItems: "center", gap: "10px",
-        }}>
+        <div className="dash-clock">
           <Clock size={16} color="#818cf8" />
           <div>
             <div style={{ color: "white", fontWeight: 700, fontSize: "15px", letterSpacing: "0.5px" }}>{formatTime(time)}</div>
-            <div style={{ color: "#64748b", fontSize: "10px" }}>Live</div>
+            <div className="dash-clock-label" style={{ color: "#64748b", fontSize: "10px" }}>Live</div>
           </div>
         </div>
       </div>
@@ -79,7 +92,7 @@ export default function Dashboard() {
       <p style={{ fontSize: "11px", fontWeight: 700, color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "12px" }}>
         Today's Attendance
       </p>
-      <div className="dash-grid-5" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "16px", marginBottom: "24px" }}>
+      <div className="dash-grid-5">
         <StatCard icon={Users}       label="Total Workers"  value={stats?.totalEmployees ?? "—"} color="#6366f1" bg="rgba(99,102,241,0.1)"  onClick={() => navigate("/employees")} />
         <StatCard icon={CheckSquare} label="Present Today"  value={stats?.present ?? "—"}        color="#10b981" bg="rgba(16,185,129,0.1)"  onClick={() => navigate("/attendance")} />
         <StatCard icon={XCircle}     label="Absent Today"   value={stats?.absent ?? "—"}         color="#ef4444" bg="rgba(239,68,68,0.1)"   onClick={() => navigate("/attendance")} />
@@ -91,7 +104,7 @@ export default function Dashboard() {
       <p style={{ fontSize: "11px", fontWeight: 700, color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "12px" }}>
         This Week's Payroll Summary
       </p>
-      <div className="dash-grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
+      <div className="dash-grid-3">
         <StatCard icon={Calculator}   label="Gross Wages (this week)"  value={fmtRupee(stats?.weeklyGross)}   color="#6366f1" bg="rgba(99,102,241,0.1)"  onClick={() => navigate("/payroll")} />
         <StatCard icon={Banknote}     label="Total Advances (this week)" value={fmtRupee(stats?.weeklyAdvance)} color="#ef4444" bg="rgba(239,68,68,0.1)"   onClick={() => navigate("/advances")} />
         <StatCard icon={Receipt}      label="Net Payable (this week)"  value={fmtRupee(stats?.weeklyNet)}     color="#10b981" bg="rgba(16,185,129,0.1)"  onClick={() => navigate("/payroll")}
@@ -156,7 +169,7 @@ export default function Dashboard() {
       </div>
 
       {/* Quick actions */}
-      <div className="dash-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginTop: "18px" }}>
+      <div className="dash-grid-2">
         {[
           { label: "Mark Today's Attendance", desc: "Record who worked today", color: "#6366f1", path: "/attendance", icon: CalendarCheck },
           { label: "View Weekly Payroll",     desc: "See what to pay this weekend", color: "#10b981", path: "/payroll",    icon: Calculator },
