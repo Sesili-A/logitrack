@@ -20,7 +20,15 @@ app.use("/api/advances",   require("./routes/advanceRoutes"));
 app.use("/api/sites",      require("./routes/siteRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
 
-connectDB();
+connectDB().then(async () => {
+  try {
+    await Employee.collection.dropIndexes();
+    await Employee.syncIndexes();
+    console.log("Indexes synchronized successfully.");
+  } catch (err) {
+    console.log("Index sync error:", err.message);
+  }
+});
 
 app.get("/", (req, res) => res.send("logiTrack API Running..."));
 

@@ -39,7 +39,7 @@ exports.createEmployee = async (req, res) => {
 
     res.json(emp);
   } catch (err) {
-    res.status(500).json(err);
+    res.status(500).json({ msg: err.message || "Failed to create worker", err });
   }
 };
 

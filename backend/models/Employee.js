@@ -6,8 +6,8 @@ const employeeSchema = new mongoose.Schema({
   dailyWage: { type: Number, default: 0 },   // ₹ per day — set by contractor
 
   // Only used for admin login accounts, not for regular workers
-  email:    { type: String, default: null, sparse: true, unique: true },
-  password: { type: String, default: null },
+  email:    { type: String, sparse: true, unique: true },
+  password: { type: String },
 
   role: {
     type: String,
