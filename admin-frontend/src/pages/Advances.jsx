@@ -163,7 +163,7 @@ export default function Advances() {
           background: white; border-radius: 16px; padding: 22px;
           box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #f1f5f9; margin-bottom: 14px;
         }
-        .adv-stat-cards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+        .adv-stat-cards { display: none; flex-direction: column; gap: 10px; margin-bottom: 14px; }
         .adv-stat-card {
           background: white; border-radius: 12px; padding: 14px 18px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #f1f5f9;
@@ -210,8 +210,8 @@ export default function Advances() {
           .adv-layout { flex-direction: column; }
           .adv-sidebar { display: none; width: 100%; }
           .adv-mobile-add-btn { display: flex; }
-          .adv-mobile-form { display: block; }
-          .adv-stat-cards { flex-direction: row; }
+          .adv-mobile-form.adv-mobile-form--open { display: block; }
+          .adv-stat-cards { display: flex; flex-direction: row; }
           .adv-stat-card { flex: 1; flex-direction: column; text-align: center; gap: 4px; }
           .adv-table-wrap { display: none; }
           .adv-cards { display: flex; }
@@ -220,7 +220,7 @@ export default function Advances() {
       `}</style>
 
       {/* ── Mobile: summary stats on top ── */}
-      <div className="adv-stat-cards" style={{ display: "none" }}> {/* shown via media query */}
+      <div className="adv-stat-cards">
         {[
           { label: "This Week", value: fmtRupee(totalThisWeek), color: "#ef4444" },
           { label: "All-time",  value: fmtRupee(totalAll),      color: "#64748b" },
@@ -238,7 +238,7 @@ export default function Advances() {
       </button>
 
       {/* ── Mobile: expandable form ── */}
-      <div className="adv-mobile-form" style={{ display: showForm ? "block" : "none" }}>
+      <div className={`adv-mobile-form ${showForm ? "adv-mobile-form--open" : ""}`}>
         <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#0f172a", marginBottom: "4px" }}>Record Advance</h2>
         <p style={{ color: "#94a3b8", fontSize: "12px", marginBottom: "16px" }}>Cash given to worker mid-week</p>
         <AddForm />

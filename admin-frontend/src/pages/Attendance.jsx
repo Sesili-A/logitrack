@@ -12,7 +12,7 @@ const STATUS_OPTIONS = [
   { value: "Overtime", label: "OT",       color: "#4f46e5", bg: "rgba(99,102,241,0.12)",  border: "rgba(99,102,241,0.3)",  icon: Clock },
 ];
 
-const cfg = s => STATUS_OPTIONS.find(o => o.value === s) || STATUS_OPTIONS[0];
+const cfg = s => STATUS_OPTIONS.find(o => o.value === s) || { value: "", label: "Not Marked", color: "#64748b", bg: "rgba(148, 163, 184, 0.12)", border: "rgba(148, 163, 184, 0.3)", icon: AlertCircle };
 const fmtRupee = n => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 const today = () => new Date().toISOString().split("T")[0];
 
@@ -61,7 +61,7 @@ export default function Attendance() {
       const defaultSite = siteRes.data.length > 0 ? siteRes.data[0].name : "";
       const init = {};
       empRes.data.forEach(emp => {
-        init[emp._id] = dbRecords[emp._id] || { status: "Present", site: defaultSite };
+        init[emp._id] = dbRecords[emp._id] || { status: "", site: defaultSite };
       });
       setRecords(init);
     } catch { showToast("Failed to load data", "error"); }
@@ -72,7 +72,7 @@ export default function Attendance() {
   const setStatus = (empId, status) => {
     setRecords(r => {
       const old = r[empId];
-      const safeOld = typeof old === "string" ? { status: old, site: "" } : (old || { status: "Present", site: "" });
+      const safeOld = typeof old === "string" ? { status: old, site: "" } : (old || { status: "", site: "" });
       return { ...r, [empId]: { ...safeOld, status } };
     });
   };
@@ -80,7 +80,7 @@ export default function Attendance() {
   const setSite = (empId, site) => {
     setRecords(r => {
       const old = r[empId];
-      const safeOld = typeof old === "string" ? { status: old, site: "" } : (old || { status: "Present", site: "" });
+      const safeOld = typeof old === "string" ? { status: old, site: "" } : (old || { status: "", site: "" });
       return { ...r, [empId]: { ...safeOld, site } };
     });
   };

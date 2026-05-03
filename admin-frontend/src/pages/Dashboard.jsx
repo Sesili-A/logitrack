@@ -14,22 +14,22 @@ const fmtDate  = iso => new Date(iso).toLocaleDateString("en-IN", { day: "numeri
 function StatCard({ icon: Icon, label, value, sub, color, bg, onClick }) {
   return (
     <div onClick={onClick} className="card-hover" style={{
-      background: "white", borderRadius: "16px", padding: "22px",
-      boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9",
+      background: "white", borderRadius: "14px", padding: "18px",
+      boxShadow: "var(--shadow-card)", border: "1px solid var(--border-light)",
       cursor: onClick ? "pointer" : "default",
     }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "14px" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "12px" }}>
         <div style={{
-          width: "46px", height: "46px", background: bg,
-          borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center",
+          width: "42px", height: "42px", background: bg,
+          borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center",
         }}>
-          <Icon size={22} color={color} />
+          <Icon size={20} color={color} />
         </div>
-        {onClick && <ArrowRight size={16} color="#cbd5e1" />}
+        {onClick && <ArrowRight size={14} color="#cbd5e1" />}
       </div>
-      <div style={{ fontSize: "30px", fontWeight: 800, color: "#0f172a", lineHeight: 1 }}>{value}</div>
-      <div style={{ color: "#64748b", fontSize: "13px", marginTop: "4px" }}>{label}</div>
-      {sub && <div style={{ color: color, fontSize: "12px", fontWeight: 600, marginTop: "4px" }}>{sub}</div>}
+      <div style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", lineHeight: 1 }}>{value}</div>
+      <div style={{ color: "#64748b", fontSize: "12px", marginTop: "4px" }}>{label}</div>
+      {sub && <div style={{ color: color, fontSize: "11px", fontWeight: 600, marginTop: "3px" }}>{sub}</div>}
     </div>
   );
 }
@@ -58,40 +58,38 @@ export default function Dashboard() {
   return (
     <Layout>
       <style>{`
-        .dash-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; }
-        .dash-clock  { background: #0f172a; border-radius: 14px; padding: 11px 18px; display: flex; align-items: center; gap: 10px; }
-        .dash-grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
-        .dash-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
-        .dash-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
+        .dash-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; gap: 10px; }
+        .dash-clock { background: #0f172a; border-radius: 12px; padding: 10px 16px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .dash-section-label { font-size: 10px; font-weight: 700; color: var(--text-muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px; }
+        .dash-grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 22px; }
+        .dash-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 22px; }
+        .dash-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
         @media (max-width: 768px) {
-          .dash-header { gap: 10px; }
-          .dash-clock-label { display: none; }
-          .dash-clock { padding: 9px 13px; }
-          .dash-grid-5 { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
-          .dash-grid-3 { grid-template-columns: 1fr !important; gap: 10px; }
-          .dash-grid-2 { grid-template-columns: 1fr !important; gap: 10px; }
+          .dash-header { flex-wrap: wrap; }
+          .dash-clock { order: -1; width: 100%; justify-content: center; }
+          .dash-grid-5 { grid-template-columns: 1fr 1fr; gap: 10px; }
+          .dash-grid-3 { grid-template-columns: 1fr; gap: 10px; }
+          .dash-grid-2 { grid-template-columns: 1fr; gap: 10px; }
+        }
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .dash-grid-5 { grid-template-columns: repeat(3, 1fr); }
         }
       `}</style>
 
       {/* Header */}
       <div className="dash-header">
-        <div>
-          <h1 style={{ fontSize: "22px", fontWeight: 800, color: "#0f172a", marginBottom: "3px" }}>Dashboard</h1>
-          <p style={{ color: "#64748b", fontSize: "13px" }}>{formatDate(time)}</p>
+        <div style={{ flex: 1 }}>
+          <h1 style={{ fontSize: "20px", fontWeight: 800, color: "#0f172a", marginBottom: "2px" }}>Dashboard</h1>
+          <p style={{ color: "#64748b", fontSize: "12px" }}>{formatDate(time)}</p>
         </div>
         <div className="dash-clock">
-          <Clock size={16} color="#818cf8" />
-          <div>
-            <div style={{ color: "white", fontWeight: 700, fontSize: "15px", letterSpacing: "0.5px" }}>{formatTime(time)}</div>
-            <div className="dash-clock-label" style={{ color: "#64748b", fontSize: "10px" }}>Live</div>
-          </div>
+          <Clock size={14} color="#818cf8" />
+          <div style={{ color: "white", fontWeight: 700, fontSize: "14px", letterSpacing: ".5px", fontVariantNumeric: "tabular-nums" }}>{formatTime(time)}</div>
         </div>
       </div>
 
       {/* Today's attendance */}
-      <p style={{ fontSize: "11px", fontWeight: 700, color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "12px" }}>
-        Today's Attendance
-      </p>
+      <div className="dash-section-label">Today's Attendance</div>
       <div className="dash-grid-5">
         <StatCard icon={Users}       label="Total Workers"  value={stats?.totalEmployees ?? "—"} color="#6366f1" bg="rgba(99,102,241,0.1)"  onClick={() => navigate("/employees")} />
         <StatCard icon={CheckSquare} label="Present Today"  value={stats?.present ?? "—"}        color="#10b981" bg="rgba(16,185,129,0.1)"  onClick={() => navigate("/attendance")} />
@@ -101,55 +99,52 @@ export default function Dashboard() {
       </div>
 
       {/* This week's payroll */}
-      <p style={{ fontSize: "11px", fontWeight: 700, color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "12px" }}>
-        This Week's Payroll Summary
-      </p>
+      <div className="dash-section-label">This Week's Payroll Summary</div>
       <div className="dash-grid-3">
-        <StatCard icon={Calculator}   label="Gross Wages (this week)"  value={fmtRupee(stats?.weeklyGross)}   color="#6366f1" bg="rgba(99,102,241,0.1)"  onClick={() => navigate("/payroll")} />
+        <StatCard icon={Calculator}   label="Gross Wages (this week)"   value={fmtRupee(stats?.weeklyGross)}   color="#6366f1" bg="rgba(99,102,241,0.1)"  onClick={() => navigate("/payroll")} />
         <StatCard icon={Banknote}     label="Total Advances (this week)" value={fmtRupee(stats?.weeklyAdvance)} color="#ef4444" bg="rgba(239,68,68,0.1)"   onClick={() => navigate("/advances")} />
-        <StatCard icon={Receipt}      label="Net Payable (this week)"  value={fmtRupee(stats?.weeklyNet)}     color="#10b981" bg="rgba(16,185,129,0.1)"  onClick={() => navigate("/payroll")}
-          sub="Gross − Advances" />
+        <StatCard icon={Receipt}      label="Net Payable (this week)"   value={fmtRupee(stats?.weeklyNet)}     color="#10b981" bg="rgba(16,185,129,0.1)"  onClick={() => navigate("/payroll")} sub="Gross − Advances" />
       </div>
 
       {/* Recent advances */}
       <div style={{
-        background: "white", borderRadius: "16px", padding: "22px",
-        boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9",
+        background: "white", borderRadius: "14px", padding: "20px",
+        boxShadow: "var(--shadow-card)", border: "1px solid var(--border-light)",
       }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "18px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
           <div>
             <h3 style={{ fontWeight: 700, fontSize: "15px", color: "#0f172a" }}>Recent Advances</h3>
-            <p style={{ color: "#94a3b8", fontSize: "12px" }}>Latest mid-week cash given</p>
+            <p style={{ color: "#94a3b8", fontSize: "11px" }}>Latest mid-week cash given</p>
           </div>
           <button onClick={() => navigate("/advances")} style={{
-            display: "flex", alignItems: "center", gap: "6px",
+            display: "flex", alignItems: "center", gap: "5px",
             padding: "7px 14px", background: "#f1f5f9",
             border: "none", borderRadius: "8px", fontSize: "12px",
             color: "#475569", cursor: "pointer", fontWeight: 600,
           }}>
-            View All <ArrowRight size={13} />
+            View All <ArrowRight size={12} />
           </button>
         </div>
 
         {!stats?.recentAdvances?.length ? (
-          <div style={{ textAlign: "center", padding: "32px", color: "#94a3b8", fontSize: "13px" }}>
-            <Banknote size={32} style={{ margin: "0 auto 10px", opacity: 0.3 }} />
+          <div style={{ textAlign: "center", padding: "28px", color: "#94a3b8", fontSize: "13px" }}>
+            <Banknote size={28} style={{ margin: "0 auto 8px", opacity: 0.2 }} />
             <p>No advances recorded yet.</p>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {stats.recentAdvances.map((a, i) => (
               <div key={i} style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "12px 14px", background: "#f8fafc", borderRadius: "10px",
-                border: "1px solid #f1f5f9",
+                border: "1px solid var(--border-light)",
               }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   <div style={{
-                    width: "36px", height: "36px", borderRadius: "50%",
+                    width: "34px", height: "34px", borderRadius: "50%",
                     background: "rgba(239,68,68,0.1)", display: "flex",
                     alignItems: "center", justifyContent: "center",
-                    color: "#dc2626", fontWeight: 700, fontSize: "14px",
+                    color: "#dc2626", fontWeight: 700, fontSize: "13px",
                   }}>
                     {a.name?.[0] || "?"}
                   </div>
@@ -159,8 +154,8 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontWeight: 700, fontSize: "15px", color: "#dc2626" }}>−{fmtRupee(a.amount)}</div>
-                  <div style={{ fontSize: "11px", color: "#94a3b8" }}>{fmtDate(a.date)}</div>
+                  <div style={{ fontWeight: 700, fontSize: "14px", color: "#dc2626" }}>−{fmtRupee(a.amount)}</div>
+                  <div style={{ fontSize: "10px", color: "#94a3b8" }}>{fmtDate(a.date)}</div>
                 </div>
               </div>
             ))}
@@ -176,23 +171,20 @@ export default function Dashboard() {
         ].map(q => (
           <button key={q.path} onClick={() => navigate(q.path)} style={{
             display: "flex", alignItems: "center", gap: "14px",
-            padding: "18px 20px", background: "white",
-            border: `1px solid ${q.color}22`, borderRadius: "14px",
-            cursor: "pointer", textAlign: "left", transition: "all 0.2s",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-          }}
-            onMouseEnter={e => (e.currentTarget.style.background = `${q.color}08`)}
-            onMouseLeave={e => (e.currentTarget.style.background = "white")}
-          >
+            padding: "16px 18px", background: "white",
+            border: `1px solid ${q.color}18`, borderRadius: "14px",
+            cursor: "pointer", textAlign: "left", transition: "all .2s",
+            boxShadow: "var(--shadow-card)",
+          }}>
             <div style={{
-              width: "44px", height: "44px", background: `${q.color}15`,
+              width: "42px", height: "42px", background: `${q.color}12`,
               borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
             }}>
               <q.icon size={20} color={q.color} />
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: "14px", color: "#0f172a" }}>{q.label}</div>
-              <div style={{ fontSize: "12px", color: "#94a3b8" }}>{q.desc}</div>
+              <div style={{ fontWeight: 700, fontSize: "13px", color: "#0f172a" }}>{q.label}</div>
+              <div style={{ fontSize: "11px", color: "#94a3b8" }}>{q.desc}</div>
             </div>
           </button>
         ))}

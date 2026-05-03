@@ -1,6 +1,8 @@
 const Employee = require("../models/Employee");
 const bcrypt   = require("bcryptjs");
 const jwt      = require("jsonwebtoken");
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Register (admin creation only)
 exports.register = async (req, res) => {
@@ -29,6 +31,39 @@ exports.login = async (req, res) => {
     );
     res.json({ token, user: { _id: user._id, name: user.name, email: user.email, role: user.role, phone: user.phone } });
   } catch (err) { res.status(500).json(err); }
+};
+
+// Google Login
+exports.googleLogin = async (req, res) => {
+  try {
+    const { token } = req.body;
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    const payload = ticket.getPayload();
+    const { email, name, sub } = payload;
+    
+    let user = await Employee.findOne({ email });
+    if (!user) {
+      // Create user if they don't exist
+      user = await Employee.create({ 
+        name, 
+        email, 
+        password: await bcrypt.hash(sub, 10),
+        role: "admin"
+      });
+    }
+
+    const jwtToken = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+    res.json({ token: jwtToken, user: { _id: user._id, name: user.name, email: user.email, role: user.role, phone: user.phone } });
+  } catch (err) {
+    res.status(400).json({ msg: "Invalid Google Token" });
+  }
 };
 
 // Get current admin profile

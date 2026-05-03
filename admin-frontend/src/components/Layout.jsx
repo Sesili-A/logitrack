@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
+import Logo from "./Logo";
 import {
   PieChart, Users, CalendarCheck,
   Calculator, Banknote, Sliders, LogOut,
-  Bell, Search, ChevronRight, X, Menu
+  Bell, Search, ChevronRight, X, Menu, Download
 } from "lucide-react";
 import API from "../services/api";
 
@@ -35,6 +36,8 @@ export default function Layout({ children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
 
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
   useEffect(() => {
     const hdrs = { Authorization: `Bearer ${localStorage.getItem("token")}` };
     API.get("/notifications", { headers: hdrs })
@@ -47,7 +50,18 @@ export default function Layout({ children }) {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    // PWA Install Prompt Logic
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
   }, []);
 
   // Close mobile menu on route change
@@ -71,13 +85,22 @@ export default function Layout({ children }) {
     window.location.href = "/";
   };
 
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
+
   return (
     <div className="layout-root">
       {/* ─── DESKTOP SIDEBAR ─── */}
       <aside className="layout-sidebar">
         {/* Logo */}
         <div className="sidebar-logo">
-          <img src="/logo.png" alt="logiTrack" className="sidebar-logo-img" />
+          <Logo size="md" />
           <div className="sidebar-logo-sub">ATTENDANCE PORTAL</div>
         </div>
 
@@ -101,19 +124,17 @@ export default function Layout({ children }) {
           })}
         </nav>
 
-        {/* Admin profile strip */}
-        <div className="sidebar-profile">
-          <div className="sidebar-avatar">{initials}</div>
-          <div className="sidebar-profile-info">
-            <div className="sidebar-profile-name">{adminName}</div>
-            <div className="sidebar-profile-role">Administrator</div>
-          </div>
-        </div>
-
-        {/* Logout */}
-        <div className="sidebar-logout-wrap">
+        {/* Bottom items (Logout) */}
+        <div className="sidebar-bottom-actions">
+          {deferredPrompt && (
+            <button onClick={handleInstallClick} className="sidebar-logout-btn" style={{ marginBottom: "12px", background: "#f8fafc", color: "#0f172a", fontWeight: 600 }}>
+              <Download size={16} />
+              Install App
+            </button>
+          )}
           <button onClick={handleLogout} className="sidebar-logout-btn">
-            <LogOut size={16} /> Logout
+            <LogOut size={16} />
+            Logout
           </button>
         </div>
       </aside>
@@ -217,7 +238,7 @@ export default function Layout({ children }) {
           <div className="mobile-drawer" onClick={e => e.stopPropagation()}>
             {/* Drawer header */}
             <div className="mobile-drawer-header">
-              <img src="/logo.png" alt="logiTrack" className="sidebar-logo-img" />
+              <Logo size="sm" />
               <button onClick={() => setMobileMenuOpen(false)} className="mobile-drawer-close">
                 <X size={18} />
               </button>
@@ -252,8 +273,13 @@ export default function Layout({ children }) {
               })}
             </div>
 
-            {/* Logout */}
+            {/* Install / Logout */}
             <div style={{ padding: "0 12px 24px" }}>
+              {deferredPrompt && (
+                <button onClick={handleInstallClick} className="sidebar-logout-btn" style={{ marginBottom: "12px", background: "#f8fafc", color: "#0f172a", fontWeight: 600 }}>
+                  <Download size={16} /> Install App
+                </button>
+              )}
               <button onClick={handleLogout} className="sidebar-logout-btn">
                 <LogOut size={16} /> Logout
               </button>
