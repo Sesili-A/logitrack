@@ -19,7 +19,7 @@ exports.markAttendance = async (req, res) => {
     const dayStart   = new Date(targetDate); dayStart.setHours(0, 0, 0, 0);
     const dayEnd     = new Date(targetDate); dayEnd.setHours(23, 59, 59, 999);
 
-    await Attendance.deleteMany({ date: { $gte: dayStart, $lte: dayEnd } });
+    await Attendance.deleteMany({ date: { $gte: dayStart, $lte: dayEnd }, adminId: req.user.id });
 
     const data = records.map(r => ({
       employee: r.employeeId,
@@ -27,6 +27,7 @@ exports.markAttendance = async (req, res) => {
       site:     r.site || null,   // site only relevant for Present/Half-Day
       date:     targetDate,
       markedBy: req.user.id,
+      adminId:  req.user.id,
     }));
 
     await Attendance.insertMany(data);
@@ -44,7 +45,7 @@ exports.getTodayAttendance = async (req, res) => {
     const dayStart = new Date(target); dayStart.setHours(0, 0, 0, 0);
     const dayEnd   = new Date(target); dayEnd.setHours(23, 59, 59, 999);
 
-    const records = await Attendance.find({ date: { $gte: dayStart, $lte: dayEnd } });
+    const records = await Attendance.find({ date: { $gte: dayStart, $lte: dayEnd }, adminId: req.user.id });
 
     // Return map { employeeId: { status, site } }
     const map = {};
@@ -67,10 +68,11 @@ exports.getDashboardStats = async (req, res) => {
     const weekEnd    = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6); weekEnd.setHours(23, 59, 59, 999);
 
-    const totalEmployees = await Employee.countDocuments({ role: "employee" });
+    const totalEmployees = await Employee.countDocuments({ role: "employee", adminId: req.user.id });
 
     const todayRecords = await Attendance.find({
       date: { $gte: todayStart, $lte: todayEnd },
+      adminId: req.user.id
     }).populate("employee", "name");
 
     const present  = todayRecords.filter(r => r.status === "Present").length;
@@ -79,9 +81,9 @@ exports.getDashboardStats = async (req, res) => {
     const overtime = todayRecords.filter(r => r.status === "Overtime").length;
 
     // Week payroll summary
-    const employees    = await Employee.find({ role: "employee" });
-    const weekAttend   = await Attendance.find({ date: { $gte: weekStart, $lte: weekEnd } });
-    const weekAdvances = await Advance.find({ date: { $gte: weekStart, $lte: weekEnd } });
+    const employees    = await Employee.find({ role: "employee", adminId: req.user.id });
+    const weekAttend   = await Attendance.find({ date: { $gte: weekStart, $lte: weekEnd }, adminId: req.user.id });
+    const weekAdvances = await Advance.find({ date: { $gte: weekStart, $lte: weekEnd }, adminId: req.user.id });
 
     let weeklyGross = 0, weeklyAdvance = 0, weeklyNet = 0;
     employees.forEach(emp => {
@@ -98,7 +100,7 @@ exports.getDashboardStats = async (req, res) => {
       weeklyNet     += Math.max(0, gross - adv);
     });
 
-    const recentAdvances = await Advance.find()
+    const recentAdvances = await Advance.find({ adminId: req.user.id })
       .populate("employee", "name")
       .sort({ createdAt: -1 }).limit(6);
 
@@ -141,9 +143,9 @@ exports.getWeeklyPayroll = async (req, res) => {
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6); weekEnd.setHours(23, 59, 59, 999);
 
-    const employees  = await Employee.find({ role: "employee" }).sort({ name: 1 });
-    const attendance = await Attendance.find({ date: { $gte: weekStart, $lte: weekEnd } });
-    const advances   = await Advance.find({ date: { $gte: weekStart, $lte: weekEnd } });
+    const employees  = await Employee.find({ role: "employee", adminId: req.user.id }).sort({ name: 1 });
+    const attendance = await Attendance.find({ date: { $gte: weekStart, $lte: weekEnd }, adminId: req.user.id });
+    const advances   = await Advance.find({ date: { $gte: weekStart, $lte: weekEnd }, adminId: req.user.id });
 
     const payroll = employees.map(emp => {
       const empAtt = attendance.filter(a => a.employee.toString() === emp._id.toString());
@@ -199,7 +201,7 @@ exports.getWeeklyPayroll = async (req, res) => {
 exports.getAttendanceHistory = async (req, res) => {
   try {
     const { from, to, employeeId, status, page = 1, limit = 25 } = req.query;
-    const filter = {};
+    const filter = { adminId: req.user.id };
     if (from || to) {
       filter.date = {};
       if (from) { const d = new Date(from); d.setHours(0,0,0,0); filter.date.$gte = d; }

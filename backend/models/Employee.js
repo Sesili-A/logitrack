@@ -15,6 +15,7 @@ const employeeSchema = new mongoose.Schema({
     enum: ["admin", "employee"],
     default: "employee",
   },
+  adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" }, // Links workers to their specific admin
 }, { timestamps: true });
 
 module.exports = mongoose.model("Employee", employeeSchema);

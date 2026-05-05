@@ -32,7 +32,7 @@ webpush.setVapidDetails(
 // Get all notifications
 exports.getNotifications = async (req, res) => {
   try {
-    const notes = await Notification.find().sort({ createdAt: -1 }).limit(20);
+    const notes = await Notification.find({ adminId: req.user.id }).sort({ createdAt: -1 }).limit(20);
     res.json(notes);
   } catch (err) { res.status(500).json(err); }
 };
@@ -40,7 +40,7 @@ exports.getNotifications = async (req, res) => {
 // Mark as read
 exports.markAsRead = async (req, res) => {
   try {
-    await Notification.updateMany({ read: false }, { read: true });
+    await Notification.updateMany({ adminId: req.user.id, read: false }, { read: true });
     res.json({ msg: "Marked all as read" });
   } catch (err) { res.status(500).json(err); }
 };
@@ -70,23 +70,22 @@ exports.subscribeToPush = async (req, res) => {
   }
 };
 
-// Helper function to send push notification to all admins
-exports.sendPushToAdmins = async (payload) => {
+// Helper function to send push notification to a specific admin
+exports.sendPushToAdmin = async (adminId, payload) => {
   try {
-    const admins = await Employee.find({ role: "admin" });
-    for (const admin of admins) {
-      if (admin.pushSubscriptions && admin.pushSubscriptions.length > 0) {
-        for (const sub of admin.pushSubscriptions) {
-          try {
-            await webpush.sendNotification(sub, JSON.stringify(payload));
-          } catch (e) {
-            console.error("Push error (possibly expired):", e.statusCode);
-          }
-        }
+    const admin = await Employee.findById(adminId);
+    if (!admin || !admin.pushSubscriptions) return;
+
+    const payloadString = JSON.stringify(payload);
+    for (const sub of admin.pushSubscriptions) {
+      try {
+        await webpush.sendNotification(sub, payloadString);
+      } catch (err) {
+        console.error("Failed to send push to an admin device", err);
       }
     }
   } catch (err) {
-    console.error("Error fetching admins for push:", err);
+    console.error("Error in sendPushToAdmin:", err);
   }
 };
 

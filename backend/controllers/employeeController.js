@@ -13,7 +13,7 @@ function getWeekStart(date) {
 // Get all workers (role = employee)
 exports.getEmployees = async (req, res) => {
   try {
-    const employees = await Employee.find({ role: "employee" })
+    const employees = await Employee.find({ role: "employee", adminId: req.user.id })
       .select("-password")
       .sort({ name: 1 });
     res.json(employees);
@@ -35,6 +35,7 @@ exports.createEmployee = async (req, res) => {
       phone:     phone?.trim() || null,
       dailyWage: Number(dailyWage) || 0,
       role:      "employee",
+      adminId:   req.user.id,
     });
 
     res.json(emp);
@@ -48,8 +49,8 @@ exports.updateEmployee = async (req, res) => {
   try {
     const { name, phone, dailyWage } = req.body;
 
-    const emp = await Employee.findByIdAndUpdate(
-      req.params.id,
+    const emp = await Employee.findOneAndUpdate(
+      { _id: req.params.id, adminId: req.user.id },
       {
         name:      name?.trim(),
         phone:     phone?.trim() || null,
@@ -68,7 +69,7 @@ exports.updateEmployee = async (req, res) => {
 // Delete worker
 exports.deleteEmployee = async (req, res) => {
   try {
-    const emp = await Employee.findByIdAndDelete(req.params.id);
+    const emp = await Employee.findOneAndDelete({ _id: req.params.id, adminId: req.user.id });
     if (!emp) return res.status(404).json({ msg: "Employee not found" });
     res.json({ msg: "Employee deleted" });
   } catch (err) {

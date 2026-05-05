@@ -29,6 +29,7 @@ exports.addAdvance = async (req, res) => {
       note:       note || "",
       weekStart,
       recordedBy: req.user.id,
+      adminId:    req.user.id,
     });
 
     const populated = await Advance.findById(advance._id)
@@ -44,7 +45,7 @@ exports.addAdvance = async (req, res) => {
 exports.getAdvances = async (req, res) => {
   try {
     const { from, to, employeeId } = req.query;
-    const filter = {};
+    const filter = { adminId: req.user.id };
 
     if (from || to) {
       filter.date = {};
@@ -66,7 +67,7 @@ exports.getAdvances = async (req, res) => {
 // Delete an advance
 exports.deleteAdvance = async (req, res) => {
   try {
-    await Advance.findByIdAndDelete(req.params.id);
+    await Advance.findOneAndDelete({ _id: req.params.id, adminId: req.user.id });
     res.json({ msg: "Advance deleted" });
   } catch (err) {
     res.status(500).json(err);

@@ -12,6 +12,7 @@ const advanceSchema = new mongoose.Schema({
   note:       { type: String, default: "" },
   weekStart:  { type: Date },   // Monday of the week — for weekly grouping
   recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
+  adminId:    { type: mongoose.Schema.Types.ObjectId, ref: "Employee" }, // Added for multi-tenancy
 }, { timestamps: true });
 
 module.exports = mongoose.model("Advance", advanceSchema);

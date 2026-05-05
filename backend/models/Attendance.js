@@ -16,6 +16,7 @@ const attendanceSchema = new mongoose.Schema({
   site:     { type: String, default: null },
   markedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
   remarks:  String,
+  adminId:  { type: mongoose.Schema.Types.ObjectId, ref: "Employee" }, // Added for multi-tenancy
 }, { timestamps: true });
 
 module.exports = mongoose.model("Attendance", attendanceSchema);
