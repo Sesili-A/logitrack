@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Layout from "../components/Layout";
 import API from "../services/api";
-import { User, Lock, MapPin, Check, X, Plus, Trash2, Edit2, Shield } from "lucide-react";
+import { User, Lock, MapPin, Check, X, Plus, Trash2, Edit2, Shield, Bell } from "lucide-react";
 
 const hdrs = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 
@@ -37,8 +37,49 @@ export default function Settings() {
   const [editingSite, setEditingSite] = useState(null);
   const [savingSite, setSavingSite] = useState(false);
 
+  const [pushEnabled, setPushEnabled] = useState(Notification.permission === "granted");
+  const [enablingPush, setEnablingPush] = useState(false);
+
   const showToast = (msg, type = "success") => {
     setToast({ msg, type }); setTimeout(() => setToast(null), 3000);
+  };
+
+  const enablePushNotifications = async () => {
+    setEnablingPush(true);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        showToast("Notification permission denied", "error");
+        setEnablingPush(false);
+        return;
+      }
+      
+      const reg = await navigator.serviceWorker.ready;
+      const res = await API.get("/notifications/vapid-public-key", { headers: hdrs() });
+      
+      const urlBase64ToUint8Array = (base64String) => {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); }
+        return outputArray;
+      };
+
+      const subscription = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(res.data.publicKey)
+      });
+      
+      await API.post("/notifications/subscribe", subscription, { headers: hdrs() });
+      setPushEnabled(true);
+      showToast("Push notifications enabled!");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to enable notifications", "error");
+    } finally {
+      setEnablingPush(false);
+    }
   };
 
   useEffect(() => {
@@ -105,6 +146,7 @@ export default function Settings() {
     { id: "profile",  label: "Profile",    icon: User },
     { id: "security", label: "Security",   icon: Lock },
     { id: "sites",    label: "Work Sites", icon: MapPin },
+    { id: "notifications", label: "Notifications", icon: Bell },
   ];
 
   return (
@@ -332,6 +374,40 @@ export default function Settings() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* NOTIFICATIONS */}
+          {activeTab === "notifications" && (
+            <div style={{ animation: "fadeInUp .2s ease" }}>
+              <div className="set-section-header">
+                <div className="set-section-icon" style={{ background: "rgba(99,102,241,.1)", color: "#6366f1" }}><Bell size={18} /></div>
+                <div>
+                  <h2 style={{ fontSize: "16px", fontWeight: 700 }}>Push Notifications</h2>
+                  <p style={{ fontSize: "12px", color: "#94a3b8" }}>Get instant alerts on your device</p>
+                </div>
+              </div>
+              
+              <div style={{ background: "#f8fafc", padding: "20px", borderRadius: "12px", border: "1px solid var(--border-light)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "16px" }}>
+                  <div style={{
+                    width: "12px", height: "12px", borderRadius: "50%",
+                    background: pushEnabled ? "#10b981" : "#ef4444",
+                    boxShadow: pushEnabled ? "0 0 10px rgba(16,185,129,0.5)" : "none"
+                  }}></div>
+                  <div style={{ fontWeight: 600, fontSize: "14px", color: "#0f172a" }}>
+                    Status: {pushEnabled ? "Enabled (Receiving Alerts)" : "Disabled"}
+                  </div>
+                </div>
+                
+                <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "20px", lineHeight: 1.5 }}>
+                  Enable push notifications to receive daily attendance reminders at 6:00 PM, and alerts when important actions happen. Works on Android and iOS (16.4+).
+                </p>
+                
+                <button onClick={enablePushNotifications} disabled={pushEnabled || enablingPush} style={{ ...btnPrimary, width: "auto", padding: "10px 20px" }}>
+                  {enablingPush ? "Setting up..." : pushEnabled ? "Configured Successfully" : "Enable Push Notifications"}
+                </button>
               </div>
             </div>
           )}

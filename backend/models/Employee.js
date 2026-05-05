@@ -8,6 +8,7 @@ const employeeSchema = new mongoose.Schema({
   // Only used for admin login accounts, not for regular workers
   email:    { type: String, sparse: true, unique: true },
   password: { type: String },
+  pushSubscriptions: { type: Array, default: [] },
 
   role: {
     type: String,

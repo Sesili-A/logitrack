@@ -7,6 +7,7 @@ const connectDB = require("./config/db");
 const Attendance = require("./models/Attendance");
 const Notification = require("./models/Notification");
 const Employee = require("./models/Employee");
+const { sendPushToAdmins } = require("./controllers/notificationController");
 
 const app = express();
 app.use(express.json());
@@ -60,7 +61,14 @@ app.listen(PORT, () => {
             message: "It is past 6 PM and today's attendance has not been updated. Please mark it to keep payroll accurate."
           });
 
-          // 2. Simulate sending an SMS to the Admin (Contractor)
+          // 2. Send Mobile Push Notification
+          await sendPushToAdmins({
+            title: "Action Required: Attendance Pending",
+            body: "It is past 6 PM and today's attendance has not been updated. Please mark it to keep payroll accurate.",
+            icon: "/logo.png"
+          });
+          
+          // Simulate SMS as fallback
           const admin = await Employee.findOne({ role: "admin" });
           const adminPhone = admin?.phone || "Admin";
           console.log(`[SMS SIMULATION] Sending SMS to ${adminPhone}: "Reminder: Please mark today's attendance for your workers."\n`);
