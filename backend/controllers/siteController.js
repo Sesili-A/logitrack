@@ -28,12 +28,27 @@ exports.createSite = async (req, res) => {
 exports.updateSite = async (req, res) => {
   try {
     const { name, description, active } = req.body;
-    const site = await Site.findOneAndUpdate(
-      { _id: req.params.id, adminId: req.user.id },
-      { name: name?.trim(), description, active },
-      { new: true }
-    );
+    const newName = name?.trim();
+    
+    const site = await Site.findOne({ _id: req.params.id, adminId: req.user.id });
     if (!site) return res.status(404).json({ msg: "Site not found" });
+
+    const oldName = site.name;
+    
+    site.name = newName;
+    site.description = description;
+    site.active = active;
+    await site.save();
+
+    // Cascade name update to all past attendance records
+    if (oldName !== newName) {
+      const Attendance = require("../models/Attendance");
+      await Attendance.updateMany(
+        { site: oldName, adminId: req.user.id },
+        { $set: { site: newName } }
+      );
+    }
+    
     res.json(site);
   } catch (err) { res.status(500).json(err); }
 };
