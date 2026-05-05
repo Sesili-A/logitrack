@@ -76,12 +76,30 @@ exports.sendPushToAdmins = async (payload) => {
 // Test push notification
 exports.testPush = async (req, res) => {
   try {
-    await exports.sendPushToAdmins({
-      title: "Test Notification 🚀",
-      body: "Your push notifications are working perfectly!",
-      icon: "/logo.png"
-    });
-    res.json({ msg: "Push sent!" });
+    const user = await Employee.findById(req.user.id);
+    if (!user || !user.pushSubscriptions || user.pushSubscriptions.length === 0) {
+      return res.status(400).json({ msg: "No push subscriptions found for your user." });
+    }
+    
+    let sent = false;
+    for (const sub of user.pushSubscriptions) {
+      try {
+        await webpush.sendNotification(sub, JSON.stringify({
+          title: "Test Notification 🚀",
+          body: "Your push notifications are working perfectly!",
+          icon: "/logo.png"
+        }));
+        sent = true;
+      } catch (e) {
+        console.error("Test Push error:", e.statusCode || e);
+      }
+    }
+    
+    if (sent) {
+      res.json({ msg: "Push sent!" });
+    } else {
+      res.status(500).json({ msg: "Failed to send push. Subscriptions might be invalid." });
+    }
   } catch (err) {
     res.status(500).json(err);
   }
