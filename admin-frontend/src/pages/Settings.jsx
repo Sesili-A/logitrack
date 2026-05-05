@@ -54,6 +54,10 @@ export default function Settings() {
         return;
       }
       
+      // Force register to ensure it exists, especially if app data was cleared
+      if ('serviceWorker' in navigator) {
+        await navigator.serviceWorker.register('/sw.js');
+      }
       const reg = await navigator.serviceWorker.ready;
       
       const existingSub = await reg.pushManager.getSubscription();
@@ -82,7 +86,8 @@ export default function Settings() {
       showToast("Push notifications enabled!");
     } catch (err) {
       console.error(err);
-      showToast(err.message || "Failed to enable notifications", "error");
+      const errText = err.response?.data?.msg || err.message || "Unknown error";
+      showToast("Err: " + errText, "error");
     } finally {
       setEnablingPush(false);
     }
