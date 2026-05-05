@@ -4,7 +4,7 @@ import Logo from "./Logo";
 import {
   PieChart, Users, CalendarCheck,
   Calculator, Banknote, Sliders, LogOut,
-  Bell, Search, ChevronRight, X, Menu, Download
+  Bell, Search, ChevronRight, X, Menu, Download, MapPin
 } from "lucide-react";
 import API from "../services/api";
 
@@ -12,6 +12,7 @@ const navItems = [
   { label: "Dashboard",      icon: PieChart,      path: "/dashboard" },
   { label: "Attendance",     icon: CalendarCheck, path: "/attendance" },
   { label: "Workers",        icon: Users,         path: "/employees" },
+  { label: "Sites",          icon: MapPin,        path: "/sites" },
   { label: "Advances",       icon: Banknote,      path: "/advances" },
   { label: "Weekly Payroll", icon: Calculator,    path: "/payroll" },
   { label: "Settings",       icon: Sliders,       path: "/settings" },
@@ -21,7 +22,7 @@ const navItems = [
 const bottomNavItems = [
   { label: "Dashboard",  icon: PieChart,      path: "/dashboard" },
   { label: "Attendance", icon: CalendarCheck, path: "/attendance" },
-  { label: "Workers",    icon: Users,         path: "/employees" },
+  { label: "Sites",      icon: MapPin,        path: "/sites" },
   { label: "Advances",   icon: Banknote,      path: "/advances" },
   { label: "Payroll",    icon: Calculator,    path: "/payroll" },
 ];
