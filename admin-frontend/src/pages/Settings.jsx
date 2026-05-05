@@ -98,7 +98,8 @@ export default function Settings() {
       await API.post("/notifications/test-push", {}, { headers: hdrs() });
       showToast("Test push sent! Check your device.");
     } catch (err) {
-      showToast("Failed to send test push", "error");
+      const errText = err.response?.data?.msg || err.message || "Unknown error";
+      showToast("Err: " + errText, "error");
     }
   };
 

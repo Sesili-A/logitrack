@@ -37,20 +37,20 @@ exports.getVapidPublicKey = (req, res) => {
 exports.subscribeToPush = async (req, res) => {
   try {
     const subscription = req.body;
-    // Find the admin user and add subscription if it doesn't exist
     const admin = await Employee.findById(req.user.id);
     if (!admin) return res.status(404).json({ msg: "User not found" });
 
-    // Prevent duplicate subscriptions
     const exists = admin.pushSubscriptions?.some(sub => sub.endpoint === subscription.endpoint);
     
     if (!exists) {
-      if (!admin.pushSubscriptions) admin.pushSubscriptions = [];
-      admin.pushSubscriptions.push(subscription);
-      await admin.save();
+      await Employee.findByIdAndUpdate(req.user.id, {
+        $push: { pushSubscriptions: subscription }
+      });
     }
     res.status(201).json({ msg: "Subscribed successfully" });
-  } catch (err) { res.status(500).json(err); }
+  } catch (err) { 
+    res.status(500).json(err); 
+  }
 };
 
 // Helper function to send push notification to all admins
