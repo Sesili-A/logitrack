@@ -427,8 +427,8 @@ export default function Settings() {
                 </p>
                 
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                  <button onClick={enablePushNotifications} disabled={pushEnabled || enablingPush} style={{ ...btnPrimary, width: "auto", padding: "10px 20px" }}>
-                    {enablingPush ? "Setting up..." : pushEnabled ? "Configured Successfully" : "Enable Push Notifications"}
+                  <button onClick={enablePushNotifications} disabled={enablingPush} style={{ ...btnPrimary, width: "auto", padding: "10px 20px" }}>
+                    {enablingPush ? "Setting up..." : pushEnabled ? "Re-configure Push Notifications" : "Enable Push Notifications"}
                   </button>
                   {pushEnabled && (
                     <button onClick={testPushNotification} style={{ padding: "10px 20px", background: "white", border: "1px solid var(--border)", borderRadius: "10px", cursor: "pointer", fontSize: "14px", fontWeight: 600, color: "#475569" }}>

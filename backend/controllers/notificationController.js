@@ -1,10 +1,27 @@
 const Notification = require("../models/Notification");
 const Employee = require("../models/Employee");
 const webpush = require("web-push");
+const fs = require("fs");
+const path = require("path");
 
-// Define VAPID keys (in a real app, these should be in .env)
-const publicVapidKey = process.env.VAPID_PUBLIC_KEY || "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuB-5S2P54bpZebB2r8M0P7L8I";
-const privateVapidKey = process.env.VAPID_PRIVATE_KEY || "H4mR8D9mP-L_3Aov_tKIf1R8xR-AOM41gWbZzF_9B8k";
+// Load or Generate VAPID keys
+let publicVapidKey = process.env.VAPID_PUBLIC_KEY;
+let privateVapidKey = process.env.VAPID_PRIVATE_KEY;
+
+const vapidPath = path.join(__dirname, '../vapid.json');
+
+if (!publicVapidKey || !privateVapidKey) {
+  if (fs.existsSync(vapidPath)) {
+    const keys = JSON.parse(fs.readFileSync(vapidPath, 'utf8'));
+    publicVapidKey = keys.publicKey;
+    privateVapidKey = keys.privateKey;
+  } else {
+    const keys = webpush.generateVAPIDKeys();
+    fs.writeFileSync(vapidPath, JSON.stringify(keys));
+    publicVapidKey = keys.publicKey;
+    privateVapidKey = keys.privateKey;
+  }
+}
 
 webpush.setVapidDetails(
   "mailto:test@example.com",
@@ -82,6 +99,7 @@ exports.testPush = async (req, res) => {
     }
     
     let sent = false;
+    let lastError = null;
     for (const sub of user.pushSubscriptions) {
       try {
         await webpush.sendNotification(sub, JSON.stringify({
@@ -91,16 +109,21 @@ exports.testPush = async (req, res) => {
         }));
         sent = true;
       } catch (e) {
-        console.error("Test Push error:", e.statusCode || e);
+        lastError = e;
+        console.error("Test Push error:", e);
       }
     }
     
     if (sent) {
       res.json({ msg: "Push sent!" });
     } else {
-      res.status(500).json({ msg: "Failed to send push. Subscriptions might be invalid." });
+      let errMsg = "Unknown error";
+      if (lastError) {
+        errMsg = lastError.body || lastError.message || JSON.stringify(lastError);
+      }
+      res.status(500).json({ msg: "Push failed. Details: " + errMsg });
     }
   } catch (err) {
-    res.status(500).json(err);
+    res.status(500).json({ msg: err.message });
   }
 };
