@@ -55,6 +55,12 @@ export default function Settings() {
       }
       
       const reg = await navigator.serviceWorker.ready;
+      
+      const existingSub = await reg.pushManager.getSubscription();
+      if (existingSub) {
+        await existingSub.unsubscribe();
+      }
+      
       const res = await API.get("/notifications/vapid-public-key", { headers: hdrs() });
       
       const urlBase64ToUint8Array = (base64String) => {
@@ -76,7 +82,7 @@ export default function Settings() {
       showToast("Push notifications enabled!");
     } catch (err) {
       console.error(err);
-      showToast("Failed to enable notifications", "error");
+      showToast(err.message || "Failed to enable notifications", "error");
     } finally {
       setEnablingPush(false);
     }
