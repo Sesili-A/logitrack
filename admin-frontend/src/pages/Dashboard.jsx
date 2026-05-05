@@ -110,8 +110,8 @@ export default function Dashboard() {
         <StatCard icon={Timer}       label="Overtime"       value={stats?.overtime ?? "—"}       color="#4f46e5" bg="rgba(99,102,241,0.1)"  onClick={() => navigate("/attendance")} />
       </div>
 
-      {/* Today's Deployments (Site-Wise) */}
-      <div className="dash-section-label">Today's Deployments</div>
+      {/* Live Site Activity (Site-Wise) */}
+      <div className="dash-section-label">Live Site Activity</div>
       <div style={{
         background: "white", borderRadius: "14px", padding: "20px", marginBottom: "22px",
         boxShadow: "var(--shadow-card)", border: "1px solid var(--border-light)",

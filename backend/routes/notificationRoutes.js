@@ -6,5 +6,6 @@ router.get("/",       protect, getNotifications);
 router.put("/read",   protect, markAsRead);
 router.get("/vapid-public-key", getVapidPublicKey);
 router.post("/subscribe", protect, subscribeToPush);
+router.post("/test-push", protect, require("../controllers/notificationController").testPush);
 
 module.exports = router;

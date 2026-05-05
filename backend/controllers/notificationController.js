@@ -72,3 +72,17 @@ exports.sendPushToAdmins = async (payload) => {
     console.error("Error fetching admins for push:", err);
   }
 };
+
+// Test push notification
+exports.testPush = async (req, res) => {
+  try {
+    await exports.sendPushToAdmins({
+      title: "Test Notification 🚀",
+      body: "Your push notifications are working perfectly!",
+      icon: "/logo.png"
+    });
+    res.json({ msg: "Push sent!" });
+  } catch (err) {
+    res.status(500).json(err);
+  }
+};

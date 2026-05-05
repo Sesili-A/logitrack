@@ -82,6 +82,15 @@ export default function Settings() {
     }
   };
 
+  const testPushNotification = async () => {
+    try {
+      await API.post("/notifications/test-push", {}, { headers: hdrs() });
+      showToast("Test push sent! Check your device.");
+    } catch (err) {
+      showToast("Failed to send test push", "error");
+    }
+  };
+
   useEffect(() => {
     API.get("/auth/profile", { headers: hdrs() }).then(r => setProfile(r.data)).catch(() => {});
     fetchSites();
@@ -405,9 +414,16 @@ export default function Settings() {
                   Enable push notifications to receive daily attendance reminders at 6:00 PM, and alerts when important actions happen. Works on Android and iOS (16.4+).
                 </p>
                 
-                <button onClick={enablePushNotifications} disabled={pushEnabled || enablingPush} style={{ ...btnPrimary, width: "auto", padding: "10px 20px" }}>
-                  {enablingPush ? "Setting up..." : pushEnabled ? "Configured Successfully" : "Enable Push Notifications"}
-                </button>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                  <button onClick={enablePushNotifications} disabled={pushEnabled || enablingPush} style={{ ...btnPrimary, width: "auto", padding: "10px 20px" }}>
+                    {enablingPush ? "Setting up..." : pushEnabled ? "Configured Successfully" : "Enable Push Notifications"}
+                  </button>
+                  {pushEnabled && (
+                    <button onClick={testPushNotification} style={{ padding: "10px 20px", background: "white", border: "1px solid var(--border)", borderRadius: "10px", cursor: "pointer", fontSize: "14px", fontWeight: 600, color: "#475569" }}>
+                      Test Popup 🚀
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
