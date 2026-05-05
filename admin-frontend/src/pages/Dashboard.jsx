@@ -3,7 +3,7 @@ import Layout from "../components/Layout";
 import API from "../services/api";
 import {
   Users, CheckSquare, XCircle, Clock, Timer,
-  Calculator, Banknote, Receipt, ArrowRight, CalendarCheck
+  Calculator, Banknote, Receipt, ArrowRight, CalendarCheck, MapPin
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -37,6 +37,7 @@ function StatCard({ icon: Icon, label, value, sub, color, bg, onClick }) {
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [time,  setTime]  = useState(new Date());
+  const [activeSite, setActiveSite] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,7 +47,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     API.get("/attendance/stats", { headers: hdrs() })
-      .then(r => setStats(r.data))
+      .then(r => {
+        setStats(r.data);
+        if (r.data.siteDeployments) {
+          const sites = Object.keys(r.data.siteDeployments);
+          if (sites.length > 0) setActiveSite(sites[0]);
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -74,6 +81,11 @@ export default function Dashboard() {
         @media (min-width: 769px) and (max-width: 1024px) {
           .dash-grid-5 { grid-template-columns: repeat(3, 1fr); }
         }
+        .site-tabs-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; }
+        .site-tabs-container::-webkit-scrollbar { height: 4px; }
+        .site-tabs-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .site-tab { padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s; border: 1px solid var(--border-light); background: #f8fafc; color: #64748b; }
+        .site-tab.active { background: #0f172a; color: white; border-color: #0f172a; box-shadow: 0 4px 6px -1px rgba(15,23,42,0.2); }
       `}</style>
 
       {/* Header */}
@@ -96,6 +108,55 @@ export default function Dashboard() {
         <StatCard icon={XCircle}     label="Absent Today"   value={stats?.absent ?? "—"}         color="#ef4444" bg="rgba(239,68,68,0.1)"   onClick={() => navigate("/attendance")} />
         <StatCard icon={Clock}       label="Half-Day"       value={stats?.halfDay ?? "—"}        color="#f59e0b" bg="rgba(245,158,11,0.1)"  onClick={() => navigate("/attendance")} />
         <StatCard icon={Timer}       label="Overtime"       value={stats?.overtime ?? "—"}       color="#4f46e5" bg="rgba(99,102,241,0.1)"  onClick={() => navigate("/attendance")} />
+      </div>
+
+      {/* Today's Deployments (Site-Wise) */}
+      <div className="dash-section-label">Today's Deployments</div>
+      <div style={{
+        background: "white", borderRadius: "14px", padding: "20px", marginBottom: "22px",
+        boxShadow: "var(--shadow-card)", border: "1px solid var(--border-light)",
+      }}>
+        {!stats?.siteDeployments || Object.keys(stats.siteDeployments).length === 0 ? (
+          <div style={{ textAlign: "center", padding: "20px", color: "#94a3b8", fontSize: "13px" }}>
+            <MapPin size={28} style={{ margin: "0 auto 8px", opacity: 0.2 }} />
+            <p>No workers deployed today.</p>
+          </div>
+        ) : (
+          <>
+            <div className="site-tabs-container">
+              {Object.keys(stats.siteDeployments).map(site => (
+                <div 
+                  key={site} 
+                  className={`site-tab ${activeSite === site ? "active" : ""}`}
+                  onClick={() => setActiveSite(site)}
+                >
+                  {site} <span style={{ opacity: 0.8, marginLeft: "4px", fontSize: "11px" }}>({stats.siteDeployments[site].length})</span>
+                </div>
+              ))}
+            </div>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "10px" }}>
+              {stats.siteDeployments[activeSite]?.map(worker => (
+                <div key={worker.id} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "10px 14px", background: "#f8fafc", borderRadius: "10px",
+                  border: "1px solid var(--border-light)"
+                }}>
+                  <div style={{ fontWeight: 600, fontSize: "13px", color: "#0f172a" }}>{worker.name}</div>
+                  <div style={{ 
+                    fontSize: "10px", fontWeight: 700, padding: "2px 8px", borderRadius: "10px",
+                    background: worker.status === "Half-Day" ? "rgba(245,158,11,0.1)" : 
+                                worker.status === "Overtime" ? "rgba(99,102,241,0.1)" : "rgba(16,185,129,0.1)",
+                    color: worker.status === "Half-Day" ? "#d97706" : 
+                           worker.status === "Overtime" ? "#4f46e5" : "#059669"
+                  }}>
+                    {worker.status}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* This week's payroll */}

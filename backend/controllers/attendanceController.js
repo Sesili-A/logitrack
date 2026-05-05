@@ -102,6 +102,18 @@ exports.getDashboardStats = async (req, res) => {
       .populate("employee", "name")
       .sort({ createdAt: -1 }).limit(6);
 
+    const siteDeployments = {};
+    todayRecords.forEach(r => {
+      if (r.status === "Absent") return; // Absents don't belong to a deployment site usually
+      const siteName = r.site ? r.site : "Unassigned";
+      if (!siteDeployments[siteName]) siteDeployments[siteName] = [];
+      siteDeployments[siteName].push({
+        id: r.employee?._id,
+        name: r.employee?.name || "Unknown",
+        status: r.status
+      });
+    });
+
     res.json({
       totalEmployees,
       present, absent, halfDay, overtime,
@@ -113,6 +125,7 @@ exports.getDashboardStats = async (req, res) => {
         name: a.employee?.name || "Unknown",
         amount: a.amount, date: a.date, note: a.note,
       })),
+      siteDeployments,
     });
   } catch (err) { res.status(500).json(err); }
 };
