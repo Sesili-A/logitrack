@@ -1,8 +1,14 @@
 const Employee = require("../models/Employee");
 const bcrypt   = require("bcryptjs");
 const jwt      = require("jsonwebtoken");
-const { OAuth2Client } = require('google-auth-library');
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const admin = require("firebase-admin");
+const serviceAccount = require("../config/firebaseServiceAccount.json");
+
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+}
 
 // Register (admin creation only)
 exports.register = async (req, res) => {
@@ -37,20 +43,16 @@ exports.login = async (req, res) => {
 exports.googleLogin = async (req, res) => {
   try {
     const { token } = req.body;
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID
-    });
-    const payload = ticket.getPayload();
-    const { email, name, sub } = payload;
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const { email, name, uid } = decodedToken;
     
     let user = await Employee.findOne({ email });
     if (!user) {
       // Create user if they don't exist
       user = await Employee.create({ 
-        name, 
+        name: name || "Google User", 
         email, 
-        password: await bcrypt.hash(sub, 10),
+        password: await bcrypt.hash(uid, 10),
         role: "admin"
       });
     }
@@ -62,6 +64,7 @@ exports.googleLogin = async (req, res) => {
     );
     res.json({ token: jwtToken, user: { _id: user._id, name: user.name, email: user.email, role: user.role, phone: user.phone } });
   } catch (err) {
+    console.error("Firebase verify error:", err);
     res.status(400).json({ msg: "Invalid Google Token" });
   }
 };

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, LogIn } from "lucide-react";
-import { GoogleLogin } from '@react-oauth/google';
+import { signInWithPopup } from "firebase/auth";
+import { auth, googleProvider } from "../firebase";
 import Logo from "../components/Logo";
 import API from "../services/api";
 
@@ -36,16 +37,20 @@ export default function Login() {
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse) => {
+  const handleGoogleSuccess = async () => {
     setLoading(true);
     setError("");
     try {
-      const res = await API.post("/auth/google", { token: credentialResponse.credential });
+      const result = await signInWithPopup(auth, googleProvider);
+      const token = await result.user.getIdToken();
+      
+      const res = await API.post("/auth/google", { token });
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("adminName",  res.data.user?.name  || "Admin");
       localStorage.setItem("adminPhone", res.data.user?.phone || "");
       window.location.href = "/dashboard";
-    } catch {
+    } catch (err) {
+      console.error(err);
       setError("Google sign-in failed. Please ensure you are authorized.");
     } finally {
       setLoading(false);
@@ -175,14 +180,18 @@ export default function Login() {
             </div>
             
             <div style={{ display: "flex", justifyContent: "center" }}>
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => setError("Google sign-in failed.")}
-                theme="filled_black"
-                shape="rectangular"
-                text="signin_with"
-                size="large"
-              />
+              <button
+                onClick={handleGoogleSuccess}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
+                  width: "100%", padding: "12px", background: "white", color: "#0f172a",
+                  border: "none", borderRadius: "12px", fontSize: "15px", fontWeight: 600,
+                  cursor: "pointer", transition: "all .2s",
+                }}
+              >
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" style={{ width: "20px", height: "20px" }} />
+                Sign in with Google
+              </button>
             </div>
           </div>
 
