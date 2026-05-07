@@ -142,7 +142,8 @@ export default function Advances() {
   const inp = { width: "100%", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", fontSize: "13px", color: "#0f172a", outline: "none", fontFamily: "inherit" };
   const lbl = { display: "block", fontSize: "11px", fontWeight: 700, color: "#64748b", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" };
 
-  const AddForm = () => (
+  // ── Form JSX (plain variable, NOT a nested component — avoids remount on every keystroke) ──
+  const formJSX = (
     <form onSubmit={handleAdd} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
       <div>
         <label style={lbl}>Worker *</label>
@@ -161,8 +162,11 @@ export default function Advances() {
           <label style={lbl}>Amount (₹) *</label>
           <div style={{ position: "relative" }}>
             <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#64748b", fontWeight: 600 }}>₹</span>
-            <input type="number" min="1" value={form.amount} required
-              onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+            <input type="text" inputMode="numeric" pattern="[0-9]*" min="1" value={form.amount} required
+              onChange={e => {
+                const val = e.target.value.replace(/[^0-9]/g, ""); // only digits
+                setForm(f => ({ ...f, amount: val }));
+              }}
               placeholder="500" style={{ ...inp, paddingLeft: "28px" }}
               onFocus={e => (e.target.style.borderColor = "#6366f1")}
               onBlur={e  => (e.target.style.borderColor = "#e2e8f0")} />
@@ -337,7 +341,7 @@ export default function Advances() {
       <div className={`adv-mobile-form ${showForm ? "adv-mobile-form--open" : ""}`}>
         <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#0f172a", marginBottom: "4px" }}>Record Advance</h2>
         <p style={{ color: "#94a3b8", fontSize: "12px", marginBottom: "16px" }}>Cash given to worker mid-week</p>
-        <AddForm />
+        {formJSX}
       </div>
 
       {/* ── Main layout ── */}
@@ -348,7 +352,7 @@ export default function Advances() {
           <div className="adv-form-card">
             <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#0f172a", marginBottom: "4px" }}>Record Advance</h2>
             <p style={{ color: "#94a3b8", fontSize: "12px", marginBottom: "20px" }}>Cash given to worker mid-week</p>
-            <AddForm />
+            {formJSX}
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
