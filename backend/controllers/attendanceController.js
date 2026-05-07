@@ -21,14 +21,35 @@ exports.markAttendance = async (req, res) => {
 
     await Attendance.deleteMany({ date: { $gte: dayStart, $lte: dayEnd }, adminId: req.user.id });
 
-    const data = records.map(r => ({
-      employee: r.employeeId,
-      status:   r.status,
-      site:     r.site || null,   // site only relevant for Present/Half-Day
-      date:     targetDate,
-      markedBy: req.user.id,
-      adminId:  req.user.id,
-    }));
+    // Helper: parse "HH:MM" → total minutes
+    const toMins = t => { if (!t) return null; const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+
+    const data = records.map(r => {
+      let status = r.status;
+      const checkIn  = r.checkIn  || null;
+      const checkOut = r.checkOut || null;
+
+      // Auto overtime rule: checkout >= 18:00 (6 PM) OR total hours >= 9
+      if (checkOut && status !== "Absent") {
+        const outMins = toMins(checkOut);
+        const inMins  = toMins(checkIn);
+        const hoursWorked = (inMins !== null && outMins > inMins) ? (outMins - inMins) / 60 : null;
+        if (outMins >= 18 * 60 || (hoursWorked !== null && hoursWorked >= 9)) {
+          status = "Overtime";
+        }
+      }
+
+      return {
+        employee: r.employeeId,
+        status,
+        site:     r.site || null,
+        checkIn,
+        checkOut,
+        date:     targetDate,
+        markedBy: req.user.id,
+        adminId:  req.user.id,
+      };
+    });
 
     await Attendance.insertMany(data);
     res.json({ msg: "Attendance saved", count: data.length });
@@ -36,6 +57,7 @@ exports.markAttendance = async (req, res) => {
     res.status(500).json(err);
   }
 };
+
 
 // ── Get today's attendance (pre-fills the mark form) ─────────────────────────
 exports.getTodayAttendance = async (req, res) => {
@@ -188,23 +210,37 @@ exports.getWeeklyPayroll = async (req, res) => {
       };
     });
 
-    // Build site-wise summary: { siteName: { cost, workerIds, days } }
+    // Build site-wise summary: { siteName: { cost, workerIds, days, dayWise: { dateStr: Set<workerIds> } } }
     const siteStats = {};
     payroll.forEach(p => {
       p.siteDays.forEach(sd => {
-        const s = sd.site || "Unassigned";
-        if (!siteStats[s]) siteStats[s] = { cost: 0, workerIds: new Set(), days: 0 };
+        const siteName = sd.site || "Unassigned";
+        if (!siteStats[siteName]) siteStats[siteName] = { cost: 0, workerIds: new Set(), dayWise: {} };
         let dayCost = p.dailyWage;
         if (sd.status === "Half-Day") dayCost *= 0.5;
         if (sd.status === "Overtime") dayCost *= 1.5;
-        siteStats[s].cost += dayCost;
-        siteStats[s].workerIds.add(p._id.toString());
-        siteStats[s].days += 1;
+        siteStats[siteName].cost += dayCost;
+        siteStats[siteName].workerIds.add(p._id.toString());
+        // Day-wise tracking
+        const dayKey = new Date(sd.date).toISOString().split("T")[0];
+        if (!siteStats[siteName].dayWise[dayKey]) siteStats[siteName].dayWise[dayKey] = new Set();
+        siteStats[siteName].dayWise[dayKey].add(p._id.toString());
       });
     });
     // Convert Sets to counts for JSON serialisation
     const siteStatsJSON = Object.fromEntries(
-      Object.entries(siteStats).map(([k, v]) => [k, { cost: v.cost, workers: v.workerIds.size, days: v.days }])
+      Object.entries(siteStats).map(([k, v]) => [
+        k,
+        {
+          cost:    v.cost,
+          workers: v.workerIds.size,
+          dayWise: Object.fromEntries(
+            Object.entries(v.dayWise)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([date, ids]) => [date, ids.size])
+          ),
+        }
+      ])
     );
 
     res.json({
