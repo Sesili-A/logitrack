@@ -21,35 +21,14 @@ exports.markAttendance = async (req, res) => {
 
     await Attendance.deleteMany({ date: { $gte: dayStart, $lte: dayEnd }, adminId: req.user.id });
 
-    // Helper: parse "HH:MM" → total minutes
-    const toMins = t => { if (!t) return null; const [h, m] = t.split(":").map(Number); return h * 60 + m; };
-
-    const data = records.map(r => {
-      let status = r.status;
-      const checkIn  = r.checkIn  || null;
-      const checkOut = r.checkOut || null;
-
-      // Auto overtime rule: checkout >= 18:00 (6 PM) OR total hours >= 9
-      if (checkOut && status !== "Absent") {
-        const outMins = toMins(checkOut);
-        const inMins  = toMins(checkIn);
-        const hoursWorked = (inMins !== null && outMins > inMins) ? (outMins - inMins) / 60 : null;
-        if (outMins >= 18 * 60 || (hoursWorked !== null && hoursWorked >= 9)) {
-          status = "Overtime";
-        }
-      }
-
-      return {
-        employee: r.employeeId,
-        status,
-        site:     r.site || null,
-        checkIn,
-        checkOut,
-        date:     targetDate,
-        markedBy: req.user.id,
-        adminId:  req.user.id,
-      };
-    });
+    const data = records.map(r => ({
+      employee: r.employeeId,
+      status:   r.status,
+      site:     r.site || null,
+      date:     targetDate,
+      markedBy: req.user.id,
+      adminId:  req.user.id,
+    }));
 
     await Attendance.insertMany(data);
     res.json({ msg: "Attendance saved", count: data.length });
@@ -57,6 +36,7 @@ exports.markAttendance = async (req, res) => {
     res.status(500).json(err);
   }
 };
+
 
 
 // ── Get today's attendance (pre-fills the mark form) ─────────────────────────

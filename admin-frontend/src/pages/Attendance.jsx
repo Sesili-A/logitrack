@@ -36,13 +36,12 @@ function Toast({ msg, type }) {
 export default function Attendance() {
   const [employees, setEmployees] = useState([]);
   const [sites, setSites] = useState([]);
-  const [records, setRecords] = useState({});   // { empId: { status, site, checkIn, checkOut } }
+  const [records, setRecords] = useState({});
   const [alreadyMarked, setAlreadyMarked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [toast, setToast] = useState(null);
   const [date, setDate] = useState(today());
-  const [showTime, setShowTime] = useState(false); // toggle time columns
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type }); setTimeout(() => setToast(null), 3000);
@@ -62,9 +61,7 @@ export default function Attendance() {
       const defaultSite = siteRes.data.length > 0 ? siteRes.data[0].name : "";
       const init = {};
       empRes.data.forEach(emp => {
-        init[emp._id] = dbRecords[emp._id]
-          ? { ...dbRecords[emp._id], checkIn: dbRecords[emp._id].checkIn || "", checkOut: dbRecords[emp._id].checkOut || "" }
-          : { status: "", site: defaultSite, checkIn: "", checkOut: "" };
+        init[emp._id] = dbRecords[emp._id] || { status: "", site: defaultSite };
       });
       setRecords(init);
     } catch { showToast("Failed to load data", "error"); }
@@ -74,42 +71,15 @@ export default function Attendance() {
 
   const setStatus = (empId, status) => {
     setRecords(r => {
-      const old = r[empId] || { status: "", site: "", checkIn: "", checkOut: "" };
+      const old = r[empId] || { status: "", site: "" };
       return { ...r, [empId]: { ...old, status } };
     });
   };
 
   const setSite = (empId, site) => {
     setRecords(r => {
-      const old = r[empId] || { status: "", site: "", checkIn: "", checkOut: "" };
+      const old = r[empId] || { status: "", site: "" };
       return { ...r, [empId]: { ...old, site } };
-    });
-  };
-
-  // Helper: parse HH:MM → total minutes
-  const toMins = t => { if (!t) return null; const [h, m] = t.split(":").map(Number); return h * 60 + m; };
-
-  // Returns true if the times indicate overtime (checkout >= 18:00 or >= 9 hrs)
-  const isAutoOvertime = (checkIn, checkOut) => {
-    if (!checkOut) return false;
-    const outMins = toMins(checkOut);
-    const inMins  = toMins(checkIn);
-    if (outMins >= 18 * 60) return true;
-    if (inMins !== null && outMins > inMins && (outMins - inMins) / 60 >= 9) return true;
-    return false;
-  };
-
-  const setTime = (empId, field, value) => {
-    setRecords(r => {
-      const old = r[empId] || { status: "", site: "", checkIn: "", checkOut: "" };
-      const updated = { ...old, [field]: value };
-      // Auto-set Overtime status based on new time
-      const ci = field === "checkIn"  ? value : updated.checkIn;
-      const co = field === "checkOut" ? value : updated.checkOut;
-      if (isAutoOvertime(ci, co) && updated.status !== "Absent") {
-        updated.status = "Overtime";
-      }
-      return { ...r, [empId]: updated };
     });
   };
 
@@ -131,13 +101,7 @@ export default function Attendance() {
         const r  = records[emp._id] || {};
         const st = r.status || "Present";
         const si = r.site   || null;
-        return {
-          employeeId: emp._id,
-          status: st,
-          site:   st !== "Absent" ? si : null,
-          checkIn:  r.checkIn  || null,
-          checkOut: r.checkOut || null,
-        };
+        return { employeeId: emp._id, status: st, site: st !== "Absent" ? si : null };
       });
       await API.post("/attendance/mark", { records: recordsArr, date }, { headers: hdrs() });
       setSubmitted(true);
@@ -322,12 +286,6 @@ export default function Attendance() {
             onChange={e => setDate(e.target.value)}
             style={{ padding: "9px 12px", background: "white", border: "1px solid #e2e8f0", borderRadius: "10px", fontSize: "13px", color: "#0f172a", outline: "none", cursor: "pointer" }} />
 
-          {/* Time tracking toggle */}
-          <button onClick={() => setShowTime(v => !v)} title="Toggle time tracking"
-            style={{ padding: "9px 13px", borderRadius: "10px", border: "1px solid #e2e8f0", background: showTime ? "rgba(99,102,241,0.1)" : "white", color: showTime ? "#6366f1" : "#64748b", fontSize: "12px", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: "5px", flexShrink: 0 }}>
-            <Clock size={14} /> <span style={{ display: "none" }}>Time</span>
-          </button>
-
           <button onClick={fetchData} title="Refresh" style={{ width: "38px", height: "38px", borderRadius: "10px", background: "white", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
             <RefreshCw size={15} color="#64748b" />
           </button>
@@ -345,14 +303,6 @@ export default function Attendance() {
           </button>
         </div>
       </div>
-
-      {/* Time tracking banner */}
-      {showTime && (
-        <div style={{ background: "rgba(99,102,241,0.07)", border: "1px solid rgba(99,102,241,0.2)", padding: "10px 16px", borderRadius: "10px", display: "flex", alignItems: "center", gap: "10px", color: "#6366f1", marginBottom: "14px", fontSize: "13px", fontWeight: 500 }}>
-          <Clock size={15} />
-          Time tracking ON — Overtime auto-detected when checkout ≥ 6:00 PM or total hours ≥ 9
-        </div>
-      )}
 
       {sites.length === 0 && (
         <div style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", padding: "12px 16px", borderRadius: "10px", display: "flex", alignItems: "center", gap: "10px", color: "#d97706", marginBottom: "20px", fontSize: "13px", fontWeight: 500 }}>
@@ -406,13 +356,9 @@ export default function Attendance() {
           const rec     = records[emp._id] || {};
           const status  = rec.status  || "";
           const recSite = rec.site    || "";
-          const checkIn = rec.checkIn  || "";
-          const checkOut= rec.checkOut || "";
           const c       = cfg(status);
-          const autoOT  = isAutoOvertime(checkIn, checkOut);
           const dayPay  = status === "Present" ? emp.dailyWage : status === "Half-Day" ? (emp.dailyWage||0)*0.5 : status === "Overtime" ? (emp.dailyWage||0)*1.5 : 0;
           const needsSite = status !== "Absent";
-          const workedHrs = checkIn && checkOut ? ((toMins(checkOut)-toMins(checkIn))/60).toFixed(1) : null;
 
           return (
             <div key={emp._id} className="att-card" style={{ borderLeft: `3px solid ${c.color}` }}>
@@ -436,39 +382,14 @@ export default function Attendance() {
                 {STATUS_OPTIONS.map(opt => (
                   <button key={opt.value} onClick={() => setStatus(emp._id, opt.value)} className="att-status-btn"
                     style={{
-                      background: status === opt.value ? opt.bg : (autoOT && opt.value === "Overtime" ? "rgba(99,102,241,0.06)" : "transparent"),
-                      color: status === opt.value ? opt.color : (autoOT && opt.value === "Overtime" ? "#6366f1" : "#94a3b8"),
-                      borderColor: status === opt.value ? opt.border : (autoOT && opt.value === "Overtime" ? "rgba(99,102,241,0.4)" : "#e2e8f0"),
+                      background: status === opt.value ? opt.bg : "transparent",
+                      color: status === opt.value ? opt.color : "#94a3b8",
+                      borderColor: status === opt.value ? opt.border : "#e2e8f0",
                     }}>
                     {opt.label}
                   </button>
                 ))}
               </div>
-
-              {/* Auto-OT badge */}
-              {autoOT && workedHrs && (
-                <div style={{ fontSize: "11px", color: "#4f46e5", fontWeight: 600, marginBottom: "8px", display: "flex", alignItems: "center", gap: "5px" }}>
-                  <Clock size={11} /> {workedHrs}h worked — Auto Overtime
-                </div>
-              )}
-
-              {/* Time inputs (when time tracking on) */}
-              {showTime && status !== "Absent" && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px" }}>
-                  <div>
-                    <div style={{ fontSize: "10px", color: "#94a3b8", fontWeight: 600, marginBottom: "3px" }}>CHECK-IN</div>
-                    <input type="time" value={checkIn}
-                      onChange={e => setTime(emp._id, "checkIn", e.target.value)}
-                      style={{ width: "100%", padding: "7px 10px", border: "1px solid #e2e8f0", borderRadius: "8px", fontSize: "13px", color: "#0f172a", outline: "none", background: "#f8fafc" }} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "10px", color: autoOT ? "#4f46e5" : "#94a3b8", fontWeight: 600, marginBottom: "3px" }}>CHECK-OUT {autoOT && "⚡ OT"}</div>
-                    <input type="time" value={checkOut}
-                      onChange={e => setTime(emp._id, "checkOut", e.target.value)}
-                      style={{ width: "100%", padding: "7px 10px", border: `1px solid ${autoOT ? "rgba(99,102,241,0.4)" : "#e2e8f0"}`, borderRadius: "8px", fontSize: "13px", color: autoOT ? "#4f46e5" : "#0f172a", outline: "none", background: autoOT ? "rgba(99,102,241,0.05)" : "#f8fafc" }} />
-                  </div>
-                </div>
-              )}
 
               {/* Site selector */}
               {needsSite && sites.length > 0 && (
