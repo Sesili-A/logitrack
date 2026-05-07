@@ -129,6 +129,10 @@ export default function WeeklyPayroll() {
         }
 
         @media print {
+          /* ── Force the desktop table to show in print (overrides mobile display:none) ── */
+          .pay-table-wrap { display: block !important; }
+          .pay-table-wrap > div { overflow: visible !important; }
+
           /* ── Page setup: A4 landscape, tight margins ── */
           @page {
             size: A4 landscape;
