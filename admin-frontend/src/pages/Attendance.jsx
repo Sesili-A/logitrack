@@ -9,7 +9,7 @@ const STATUS_OPTIONS = [
   { value: "Present",  label: "Present",  color: "#059669", bg: "rgba(16,185,129,0.12)",  border: "rgba(16,185,129,0.3)",  icon: CheckCircle },
   { value: "Half-Day", label: "½ Day",    color: "#d97706", bg: "rgba(245,158,11,0.12)",  border: "rgba(245,158,11,0.3)",  icon: Clock },
   { value: "Absent",   label: "Absent",   color: "#dc2626", bg: "rgba(239,68,68,0.12)",   border: "rgba(239,68,68,0.3)",   icon: XCircle },
-  { value: "Overtime", label: "OT",       color: "#4f46e5", bg: "rgba(99,102,241,0.12)",  border: "rgba(99,102,241,0.3)",  icon: Clock },
+  { value: "Overtime", label: "OT",       color: "#e07a67", bg: "rgba(245,143,124,0.12)",  border: "rgba(245,143,124,0.3)",  icon: Clock },
 ];
 
 const cfg = s => STATUS_OPTIONS.find(o => o.value === s) || { value: "", label: "Not Marked", color: "#64748b", bg: "rgba(148, 163, 184, 0.12)", border: "rgba(148, 163, 184, 0.3)", icon: AlertCircle };
@@ -292,8 +292,8 @@ export default function Attendance() {
 
           <button onClick={submitAttendance} disabled={submitting || !employees.length} className="att-save-btn"
             style={{
-              background: submitted ? "linear-gradient(135deg,#10b981,#059669)" : (alreadyMarked ? "linear-gradient(135deg,#f59e0b,#d97706)" : "linear-gradient(135deg,#6366f1,#8b5cf6)"),
-              boxShadow: alreadyMarked ? "0 4px 15px rgba(245,158,11,0.3)" : "0 4px 15px rgba(99,102,241,0.3)",
+              background: submitted ? "linear-gradient(135deg,#10b981,#059669)" : (alreadyMarked ? "linear-gradient(135deg,#f59e0b,#d97706)" : "linear-gradient(135deg,#F58F7C,#F2C4CE)"),
+              boxShadow: alreadyMarked ? "0 4px 15px rgba(245,158,11,0.3)" : "0 4px 15px rgba(245,143,124,0.3)",
               opacity: submitting ? 0.7 : 1,
             }}>
             {submitting ? (

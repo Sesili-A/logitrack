@@ -129,10 +129,84 @@ export default function WeeklyPayroll() {
         }
 
         @media print {
-          aside, header, button, .mobile-bottom-nav { display: none !important; }
-          main { margin: 0 !important; padding: 0 !important; }
+          /* ── Page setup: A4 landscape, tight margins ── */
+          @page {
+            size: A4 landscape;
+            margin: 8mm 10mm;
+          }
+
+          /* Hide everything except the payroll content */
+          .layout-sidebar,
+          .mobile-bottom-nav,
+          .mobile-overlay,
+          .top-header,
+          .pay-header-actions,
+          .pay-summary,
+          .pay-cards,
+          .pay-week-nav { display: none !important; }
+
+          /* Reset layout so table fills the page */
+          body, html { background: white !important; }
+          .layout-root { display: block !important; }
+          .layout-main { margin-left: 0 !important; }
+          .layout-page-content {
+            padding: 0 !important;
+            animation: none !important;
+          }
+
+          /* Print header: shows week title only when printing */
+          .print-header { display: block !important; }
+
+          /* Compact table */
+          .pay-table-wrap {
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+          }
+          table { width: 100% !important; border-collapse: collapse !important; font-size: 9pt !important; }
+          thead tr { background: #2C2B30 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          thead th {
+            padding: 5px 6px !important;
+            font-size: 7.5pt !important;
+            color: white !important;
+            font-weight: 700 !important;
+            letter-spacing: 0 !important;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+          }
+          tbody td { padding: 5px 6px !important; font-size: 9pt !important; border-top: 1px solid #e5e0e0 !important; }
+          tbody tr:nth-child(even) td { background: #faf9f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          tfoot tr { background: #2C2B30 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          tfoot td { padding: 6px 6px !important; color: white !important; font-size: 9pt !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+          /* Shrink avatar circle */
+          tbody td div[style*="border-radius: 50%"] {
+            width: 22px !important; height: 22px !important; font-size: 9pt !important;
+          }
+
+          /* Net payable badge — keep color */
+          span[style*="border-radius: 20px"] {
+            padding: 2px 6px !important; font-size: 9pt !important;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+          }
+
+          /* Hide expand rows in print */
+          .pay-header { margin-bottom: 6px !important; }
         }
       `}</style>
+
+      {/* ── Print-only header (hidden on screen) ── */}
+      <div className="print-header" style={{ display: "none", marginBottom: "10px", borderBottom: "2px solid #2C2B30", paddingBottom: "6px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <div>
+            <div style={{ fontSize: "14pt", fontWeight: 800, color: "#2C2B30" }}>LogiTrack — Weekly Payroll</div>
+            <div style={{ fontSize: "9pt", color: "#4F4F51", marginTop: "2px" }}>
+              {fmtDate(weekStart)} – {fmtDate(weekEnd)}, {weekEnd.getFullYear()}
+              {isCurrentWeek && " · Current Week"}
+            </div>
+          </div>
+          <div style={{ fontSize: "8pt", color: "#9b9b9d" }}>Printed: {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div>
+        </div>
+      </div>
 
       {/* ── Header ── */}
       <div className="pay-header">

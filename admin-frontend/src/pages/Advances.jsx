@@ -108,9 +108,9 @@ function AdvanceForm({ form, setForm, employees, saving, onSubmit }) {
 
       <button type="submit" disabled={saving} style={{
         width: "100%", padding: "11px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-        background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", borderRadius: "11px",
+        background: "linear-gradient(135deg,#F58F7C,#F2C4CE)", border: "none", borderRadius: "11px",
         color: "white", fontSize: "13px", fontWeight: 600, cursor: "pointer",
-        boxShadow: "0 4px 15px rgba(99,102,241,0.3)", opacity: saving ? 0.7 : 1,
+        boxShadow: "0 4px 15px rgba(245,143,124,0.3)", opacity: saving ? 0.7 : 1,
       }}>
         <Plus size={15} /> {saving ? "Saving…" : "Record Advance"}
       </button>
@@ -243,7 +243,7 @@ export default function Advances() {
             <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "2px" }}>
               {g.weekLabel}
               {multiEntry && (
-                <span style={{ marginLeft: "8px", background: "rgba(99,102,241,0.1)", color: "#6366f1", padding: "1px 6px", borderRadius: "8px", fontWeight: 600 }}>
+                <span style={{ marginLeft: "8px", background: "rgba(245,143,124,0.1)", color: "#F58F7C", padding: "1px 6px", borderRadius: "8px", fontWeight: 600 }}>
                   {g.records.length} entries
                 </span>
               )}
@@ -324,7 +324,7 @@ export default function Advances() {
         .adv-form-card { background: white; border-radius: 16px; padding: 22px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #f1f5f9; margin-bottom: 14px; }
         .adv-stat-cards { display: none; flex-direction: column; gap: 10px; margin-bottom: 14px; }
         .adv-stat-card { background: white; border-radius: 12px; padding: 14px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
-        .adv-mobile-add-btn { display: none; width: 100%; padding: 12px; margin-bottom: 14px; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg,#6366f1,#8b5cf6); border: none; border-radius: 12px; color: white; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(99,102,241,0.3); }
+        .adv-mobile-add-btn { display: none; width: 100%; padding: 12px; margin-bottom: 14px; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg,#F58F7C,#F2C4CE); border: none; border-radius: 12px; color: white; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(245,143,124,0.3); }
         .adv-mobile-form { display: none; background: white; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #f1f5f9; margin-bottom: 16px; }
         .adv-list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 10px; }
         @media (max-width: 768px) {

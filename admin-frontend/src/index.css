@@ -6,31 +6,33 @@
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --primary: #6366f1;
-  --primary-light: #818cf8;
-  --primary-dark: #4f46e5;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --sidebar-bg: #0f172a;
-  --sidebar-text: #94a3b8;
-  --main-bg: #f1f5f9;
-  --card-bg: #ffffff;
-  --text-primary: #0f172a;
-  --text-secondary: #64748b;
-  --text-muted: #94a3b8;
-  --border: #e2e8f0;
-  --border-light: #f1f5f9;
+  /* ── New palette: charcoal + coral ── */
+  --primary:       #F58F7C;          /* coral / salmon */
+  --primary-light: #F2C4CE;          /* soft pink */
+  --primary-dark:  #e07a67;          /* darker coral */
+  --success:       #10b981;
+  --warning:       #f59e0b;
+  --danger:        #ef4444;
+  --sidebar-bg:    #2C2B30;          /* darkest charcoal */
+  --sidebar-dark2: #4F4F51;          /* mid-charcoal */
+  --sidebar-text:  #D6D6D6;          /* light grey */
+  --main-bg:       #f7f4f4;          /* warm off-white page bg */
+  --card-bg:       #ffffff;
+  --text-primary:  #2C2B30;
+  --text-secondary:#4F4F51;
+  --text-muted:    #9b9b9d;
+  --border:        #e5e0e0;
+  --border-light:  #f0eded;
   --sidebar-width: 235px;
   --topbar-height: 56px;
-  --bottom-nav-h: 64px;
-  --page-gutter: 24px;
+  --bottom-nav-h:  64px;
+  --page-gutter:   24px;
   --mobile-gutter: 16px;
-  --radius: 14px;
+  --radius:    14px;
   --radius-sm: 10px;
-  --radius-xs: 8px;
-  --shadow-card: 0 1px 8px rgba(0,0,0,0.06);
-  --shadow-lg: 0 12px 40px rgba(0,0,0,0.1);
+  --radius-xs:  8px;
+  --shadow-card: 0 1px 8px rgba(44,43,48,0.07);
+  --shadow-lg:   0 12px 40px rgba(44,43,48,0.13);
 }
 
 body {
@@ -97,15 +99,15 @@ input, select, button, textarea { font-family: inherit; }
 }
 .sidebar-link:hover { background: rgba(255,255,255,.06); color: white; }
 .sidebar-link--active {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+  background: linear-gradient(135deg, #F58F7C, #F2C4CE) !important;
   color: white !important; font-weight: 600;
-  box-shadow: 0 4px 14px rgba(99,102,241,.35);
+  box-shadow: 0 4px 14px rgba(245,143,124,.35);
 }
 .sidebar-link-label { flex: 1; }
 
 .sidebar-avatar {
   width: 32px; height: 32px; border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #F58F7C, #F2C4CE);
   display: flex; align-items: center; justify-content: center;
   color: white; font-weight: 700; font-size: 12px; flex-shrink: 0;
 }
@@ -177,7 +179,7 @@ input, select, button, textarea { font-family: inherit; }
 .topbar-profile-link:hover { opacity: .85; }
 .topbar-avatar {
   width: 32px; height: 32px; border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #F58F7C, #F2C4CE);
   display: flex; align-items: center; justify-content: center;
   color: white; font-weight: 700; font-size: 12px; flex-shrink: 0;
 }
@@ -245,7 +247,7 @@ input, select, button, textarea { font-family: inherit; }
 .login-wrapper {
   min-height: 100vh; min-height: 100dvh;
   display: flex;
-  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  background: linear-gradient(135deg, #2C2B30 0%, #4F4F51 50%, #2C2B30 100%);
   position: relative; overflow: hidden;
 }
 .login-bg-blob {
@@ -258,7 +260,7 @@ input, select, button, textarea { font-family: inherit; }
 .login-left-logo { display: flex; flex-direction: column; gap: 12px; margin-bottom: 44px; }
 .login-left h1 { color: white; font-size: 44px; font-weight: 800; line-height: 1.1; letter-spacing: -.5px; margin-bottom: 18px; }
 .login-left h1 span {
-  background: linear-gradient(135deg, #6366f1, #a78bfa);
+  background: linear-gradient(135deg, #F58F7C, #F2C4CE);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
 }
 .login-stats {
