@@ -159,7 +159,8 @@ exports.getWeeklyPayroll = async (req, res) => {
 
       const empAdvances  = advances.filter(a => a.employee.toString() === emp._id.toString());
       const totalAdvance = empAdvances.reduce((s, a) => s + a.amount, 0);
-      const netPayable   = Math.max(0, grossWage - totalAdvance);
+      const netPayable   = grossWage - totalAdvance; // allow negative (excess carry-over to next week)
+      const carryOver    = netPayable < 0 ? Math.abs(netPayable) : 0;
 
       // Sites worked this week (unique, with day info)
       const siteDays = empAtt
@@ -177,7 +178,7 @@ exports.getWeeklyPayroll = async (req, res) => {
         _id: emp._id, name: emp.name, phone: emp.phone,
         dailyWage: emp.dailyWage || 0,
         presentDays, halfDays, absentDays, overtimeDays,
-        effectiveDays, grossWage, totalAdvance, netPayable,
+        effectiveDays, grossWage, totalAdvance, netPayable, carryOver,
         siteDays,
         uniqueSites,
         advanceDetails: empAdvances.map(a => ({
@@ -187,12 +188,32 @@ exports.getWeeklyPayroll = async (req, res) => {
       };
     });
 
+    // Build site-wise summary: { siteName: { cost, workerIds, days } }
+    const siteStats = {};
+    payroll.forEach(p => {
+      p.siteDays.forEach(sd => {
+        const s = sd.site || "Unassigned";
+        if (!siteStats[s]) siteStats[s] = { cost: 0, workerIds: new Set(), days: 0 };
+        let dayCost = p.dailyWage;
+        if (sd.status === "Half-Day") dayCost *= 0.5;
+        if (sd.status === "Overtime") dayCost *= 1.5;
+        siteStats[s].cost += dayCost;
+        siteStats[s].workerIds.add(p._id.toString());
+        siteStats[s].days += 1;
+      });
+    });
+    // Convert Sets to counts for JSON serialisation
+    const siteStatsJSON = Object.fromEntries(
+      Object.entries(siteStats).map(([k, v]) => [k, { cost: v.cost, workers: v.workerIds.size, days: v.days }])
+    );
+
     res.json({
       weekStart, weekEnd,
       payroll,
       totalGross:   payroll.reduce((s, p) => s + p.grossWage, 0),
       totalAdvance: payroll.reduce((s, p) => s + p.totalAdvance, 0),
       totalNet:     payroll.reduce((s, p) => s + p.netPayable, 0),
+      siteStats:    siteStatsJSON,
     });
   } catch (err) { res.status(500).json(err); }
 };

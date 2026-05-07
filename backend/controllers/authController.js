@@ -1,12 +1,17 @@
 const Employee = require("../models/Employee");
 const bcrypt   = require("bcryptjs");
 const jwt      = require("jsonwebtoken");
-const admin = require("firebase-admin");
-const serviceAccount = require("../config/firebaseServiceAccount.json");
+const admin    = require("firebase-admin");
 
+// Initialize Firebase Admin using individual env vars (never commit the JSON file)
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+    credential: admin.credential.cert({
+      projectId:   process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      // Replace literal \n escapes that env vars encode the private key with
+      privateKey:  (process.env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n"),
+    }),
   });
 }
 

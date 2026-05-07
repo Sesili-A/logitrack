@@ -223,9 +223,22 @@ export default function WeeklyPayroll() {
                       <div style={{ fontSize: "11px", color: "#94a3b8" }}>{fmtRupee(p.dailyWage)}/day</div>
                     </div>
                   </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: "11px", color: "#94a3b8" }}>Net Payable</div>
-                    <div style={{ fontSize: "18px", fontWeight: 800, color: p.netPayable > 0 ? "#059669" : "#94a3b8" }}>{fmtRupee(p.netPayable)}</div>
+                  <div style={{ textAlign:"right" }}>
+                    <div style={{ fontSize:"11px", color:"#94a3b8" }}>Net Payable</div>
+                    <div style={{
+                      fontSize: "18px", fontWeight: 800,
+                      color: p.netPayable > 0 ? "#059669" : p.netPayable === 0 ? "#94a3b8" : "#dc2626"
+                    }}>
+                      {p.netPayable < 0 ? `−₹${Math.abs(p.netPayable).toLocaleString("en-IN")}` : fmtRupee(p.netPayable)}
+                    </div>
+                    {p.carryOver > 0 && (
+                      <div style={{ fontSize:"10px", color:"#f59e0b", fontWeight:600, marginTop:"2px" }}>
+                        ⚠ ₹{p.carryOver.toLocaleString("en-IN")} carry-over
+                      </div>
+                    )}
+                    {p.netPayable === 0 && p.grossWage > 0 && (
+                      <div style={{ fontSize:"10px", color:"#10b981", fontWeight:600, marginTop:"2px" }}>✓ Settled</div>
+                    )}
                   </div>
                 </div>
 
@@ -338,9 +351,24 @@ export default function WeeklyPayroll() {
                           ) : <span style={{ color: "#cbd5e1" }}>—</span>}
                         </td>
                         <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                          <span style={{ display: "inline-block", padding: "5px 14px", borderRadius: "20px", fontSize: "14px", fontWeight: 800, background: p.netPayable > 0 ? "rgba(16,185,129,0.12)" : "#f1f5f9", color: p.netPayable > 0 ? "#059669" : "#94a3b8", border: `1px solid ${p.netPayable > 0 ? "rgba(16,185,129,0.3)" : "#e2e8f0"}` }}>
-                            {fmtRupee(p.netPayable)}
+                          <span style={{
+                            display: "inline-block", padding: "5px 14px", borderRadius: "20px",
+                            fontSize: "14px", fontWeight: 800,
+                            background: p.netPayable > 0 ? "rgba(16,185,129,0.12)" : p.netPayable === 0 ? "rgba(16,185,129,0.08)" : "rgba(220,38,38,0.1)",
+                            color: p.netPayable > 0 ? "#059669" : p.netPayable === 0 ? "#10b981" : "#dc2626",
+                            border: `1px solid ${p.netPayable > 0 ? "rgba(16,185,129,0.3)" : p.netPayable === 0 ? "rgba(16,185,129,0.25)" : "rgba(220,38,38,0.3)"}`,
+                          }}>
+                            {p.netPayable < 0
+                              ? `−₹${Math.abs(p.netPayable).toLocaleString("en-IN")}`
+                              : p.netPayable === 0 && p.grossWage > 0
+                                ? "✓ Settled"
+                                : fmtRupee(p.netPayable)}
                           </span>
+                          {p.carryOver > 0 && (
+                            <div style={{ fontSize:"10px", color:"#f59e0b", fontWeight:600, marginTop:"4px" }}>
+                              ⚠ ₹{p.carryOver.toLocaleString("en-IN")} next week
+                            </div>
+                          )}
                         </td>
                       </tr>
                       {expanded === p._id && p.advanceDetails?.length > 0 && (

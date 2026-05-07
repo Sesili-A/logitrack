@@ -1,12 +1,25 @@
 import { useState, useEffect, useCallback } from "react";
 import Layout from "../components/Layout";
 import API from "../services/api";
-import { Wallet, Plus, Trash2, X, Check, ChevronDown, IndianRupee } from "lucide-react";
+import { Wallet, Plus, Trash2, X, Check, ChevronDown, ChevronUp } from "lucide-react";
 
 const hdrs = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 const fmtRupee = n => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 const fmtDate  = iso => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 const today    = () => new Date().toISOString().split("T")[0];
+
+function getMonday(d = new Date()) {
+  const date = new Date(d);
+  const day  = date.getDay();
+  date.setDate(date.getDate() - day + (day === 0 ? -6 : 1));
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+function weekLabel(d) {
+  const mon = getMonday(new Date(d));
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  return `${fmtDate(mon)} – ${fmtDate(sun)}`;
+}
 
 function Toast({ msg, type }) {
   return (
@@ -33,7 +46,8 @@ export default function Advances() {
   const [toast,     setToast]     = useState(null);
   const [confirmId, setConfirmId] = useState(null);
   const [filterEmp, setFilterEmp] = useState("all");
-  const [showForm,  setShowForm]  = useState(false); // mobile: toggle form
+  const [showForm,  setShowForm]  = useState(false);
+  const [expanded,  setExpanded]  = useState({}); // { "empId-weekKey": true }
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type }); setTimeout(() => setToast(null), 3000);
@@ -82,21 +96,54 @@ export default function Advances() {
     finally { setSaving(false); }
   };
 
+  // Delete all advances in a group (settled)
+  const handleDeleteGroup = async (ids) => {
+    setSaving(true);
+    try {
+      await Promise.all(ids.map(id => API.delete(`/advances/${id}`, { headers: hdrs() })));
+      await fetchAdvances();
+      showToast("Settled records cleared");
+    } catch { showToast("Failed to clear", "error"); }
+    finally { setSaving(false); }
+  };
+
+  // ── Group advances by employee + week ──────────────────────────────────────
   const filtered = advances.filter(a => filterEmp === "all" || a.employee?._id === filterEmp);
 
-  const totalThisWeek = (() => {
-    const mon = new Date(); const day = mon.getDay();
-    mon.setDate(mon.getDate() - day + (day === 0 ? -6 : 1)); mon.setHours(0,0,0,0);
-    return advances.filter(a => new Date(a.date) >= mon).reduce((s, a) => s + a.amount, 0);
+  // Build grouped structure: [{ empId, empName, weekKey, weekLabel, records[], total }]
+  const groups = (() => {
+    const map = {};
+    filtered.forEach(a => {
+      const empId = a.employee?._id || "unknown";
+      const mon   = getMonday(new Date(a.date));
+      const key   = `${empId}__${mon.toISOString().split("T")[0]}`;
+      if (!map[key]) {
+        map[key] = {
+          key,
+          empId,
+          empName:   a.employee?.name || "Unknown",
+          weekLabel: weekLabel(a.date),
+          records:   [],
+          total:     0,
+        };
+      }
+      map[key].records.push(a);
+      map[key].total += a.amount;
+    });
+    return Object.values(map).sort((a, b) => new Date(b.records[0].date) - new Date(a.records[0].date));
   })();
 
+  const totalThisWeek = (() => {
+    const mon = getMonday();
+    return advances.filter(a => new Date(a.date) >= mon).reduce((s, a) => s + a.amount, 0);
+  })();
   const totalAll = advances.reduce((s, a) => s + a.amount, 0);
+
   const inp = { width: "100%", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", fontSize: "13px", color: "#0f172a", outline: "none", fontFamily: "inherit" };
   const lbl = { display: "block", fontSize: "11px", fontWeight: 700, color: "#64748b", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" };
 
   const AddForm = () => (
     <form onSubmit={handleAdd} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-      {/* Worker */}
       <div>
         <label style={lbl}>Worker *</label>
         <div style={{ position: "relative" }}>
@@ -109,7 +156,6 @@ export default function Advances() {
         </div>
       </div>
 
-      {/* Amount + Date in a row */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
         <div>
           <label style={lbl}>Amount (₹) *</label>
@@ -132,7 +178,6 @@ export default function Advances() {
         </div>
       </div>
 
-      {/* Note */}
       <div>
         <label style={lbl}>Note <span style={{ fontWeight: 400, textTransform: "none", color: "#94a3b8" }}>(optional)</span></label>
         <input value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
@@ -152,60 +197,112 @@ export default function Advances() {
     </form>
   );
 
+  // ── Group card (used for both mobile and desktop) ──────────────────────────
+  const GroupCard = ({ g }) => {
+    const isOpen = expanded[g.key];
+    const toggle = () => setExpanded(prev => ({ ...prev, [g.key]: !prev[g.key] }));
+    const multiEntry = g.records.length > 1;
+
+    return (
+      <div style={{ background: "white", borderRadius: "14px", border: "1px solid #f1f5f9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", overflow: "hidden" }}>
+        {/* Header row */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 16px", cursor: multiEntry ? "pointer" : "default" }}
+          onClick={multiEntry ? toggle : undefined}>
+          {/* Avatar */}
+          <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "rgba(239,68,68,0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#dc2626", fontWeight: 700, fontSize: "14px", flexShrink: 0 }}>
+            {g.empName[0]}
+          </div>
+
+          {/* Info */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: "14px", color: "#0f172a" }}>{g.empName}</div>
+            <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "2px" }}>
+              {g.weekLabel}
+              {multiEntry && (
+                <span style={{ marginLeft: "8px", background: "rgba(99,102,241,0.1)", color: "#6366f1", padding: "1px 6px", borderRadius: "8px", fontWeight: 600 }}>
+                  {g.records.length} entries
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Total */}
+          <div style={{ textAlign: "right", flexShrink: 0 }}>
+            <div style={{ fontSize: "16px", fontWeight: 800, color: "#dc2626" }}>−{fmtRupee(g.total)}</div>
+            {multiEntry && (
+              <div style={{ marginTop: "4px", display: "flex", alignItems: "center", gap: "4px", justifyContent: "flex-end", color: "#94a3b8", fontSize: "11px" }}>
+                {isOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                {isOpen ? "collapse" : "expand"}
+              </div>
+            )}
+          </div>
+
+          {/* Single record delete (for single-entry groups) */}
+          {!multiEntry && (
+            confirmId === g.records[0]._id ? (
+              <div style={{ display: "flex", gap: "6px", marginLeft: "8px" }}>
+                <button onClick={(e) => { e.stopPropagation(); handleDelete(g.records[0]._id); }}
+                  style={{ padding: "4px 10px", background: "#ef4444", border: "none", borderRadius: "6px", color: "white", fontSize: "12px", cursor: "pointer", fontWeight: 600 }}>Yes</button>
+                <button onClick={(e) => { e.stopPropagation(); setConfirmId(null); }}
+                  style={{ padding: "4px 10px", background: "#f1f5f9", border: "none", borderRadius: "6px", color: "#64748b", fontSize: "12px", cursor: "pointer" }}>No</button>
+              </div>
+            ) : (
+              <button onClick={(e) => { e.stopPropagation(); setConfirmId(g.records[0]._id); }}
+                style={{ marginLeft: "8px", background: "rgba(239,68,68,0.08)", border: "none", borderRadius: "7px", width: "30px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+                <Trash2 size={13} color="#dc2626" />
+              </button>
+            )
+          )}
+        </div>
+
+        {/* Expanded sub-records */}
+        {multiEntry && isOpen && (
+          <div style={{ borderTop: "1px solid #f1f5f9", padding: "12px 16px", display: "flex", flexDirection: "column", gap: "8px", background: "#fffbf5" }}>
+            {g.records.map(a => (
+              <div key={a._id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px", background: "white", borderRadius: "10px", border: "1px solid rgba(245,158,11,0.2)" }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: "12px", color: "#64748b" }}>{fmtDate(a.date)}</div>
+                  {a.note && <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "1px" }}>{a.note}</div>}
+                </div>
+                <span style={{ fontWeight: 700, color: "#dc2626", fontSize: "14px" }}>−{fmtRupee(a.amount)}</span>
+                {confirmId === a._id ? (
+                  <div style={{ display: "flex", gap: "4px" }}>
+                    <button onClick={() => handleDelete(a._id)} style={{ padding: "3px 8px", background: "#ef4444", border: "none", borderRadius: "6px", color: "white", fontSize: "11px", cursor: "pointer" }}>Yes</button>
+                    <button onClick={() => setConfirmId(null)} style={{ padding: "3px 8px", background: "#f1f5f9", border: "none", borderRadius: "6px", color: "#64748b", fontSize: "11px", cursor: "pointer" }}>No</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setConfirmId(a._id)}
+                    style={{ background: "rgba(239,68,68,0.08)", border: "none", borderRadius: "6px", width: "26px", height: "26px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                    <Trash2 size={12} color="#dc2626" />
+                  </button>
+                )}
+              </div>
+            ))}
+
+            {/* Clear all button for multi-record groups */}
+            <button onClick={() => handleDeleteGroup(g.records.map(r => r._id))}
+              disabled={saving}
+              style={{ marginTop: "4px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "8px", background: "rgba(239,68,68,0.08)", border: "1px dashed rgba(239,68,68,0.25)", borderRadius: "8px", color: "#dc2626", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
+              <Trash2 size={13} /> Clear all {g.records.length} entries for this week
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <Layout>
       <style>{`
         .adv-layout { display: flex; gap: 24px; align-items: flex-start; }
         .adv-sidebar { width: 300px; flex-shrink: 0; }
         .adv-main { flex: 1; min-width: 0; }
-
-        .adv-form-card {
-          background: white; border-radius: 16px; padding: 22px;
-          box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #f1f5f9; margin-bottom: 14px;
-        }
+        .adv-form-card { background: white; border-radius: 16px; padding: 22px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #f1f5f9; margin-bottom: 14px; }
         .adv-stat-cards { display: none; flex-direction: column; gap: 10px; margin-bottom: 14px; }
-        .adv-stat-card {
-          background: white; border-radius: 12px; padding: 14px 18px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #f1f5f9;
-          display: flex; justify-content: space-between; align-items: center;
-        }
-
-        /* Mobile add button */
-        .adv-mobile-add-btn {
-          display: none;
-          width: 100%; padding: 12px; margin-bottom: 14px;
-          align-items: center; justify-content: center; gap: 8px;
-          background: linear-gradient(135deg,#6366f1,#8b5cf6); border: none; border-radius: 12px;
-          color: white; font-size: 14px; font-weight: 600; cursor: pointer;
-          box-shadow: 0 4px 15px rgba(99,102,241,0.3);
-        }
-        .adv-mobile-form {
-          display: none;
-          background: white; border-radius: 16px; padding: 20px;
-          box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #f1f5f9;
-          margin-bottom: 16px;
-        }
-
-        /* Advance list */
-        .adv-list-header {
-          display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 10px;
-        }
-        .adv-table-wrap {
-          background: white; border-radius: 16px;
-          box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #f1f5f9; overflow: hidden;
-        }
-        
-        /* Mobile advance cards */
-        .adv-cards { display: none; flex-direction: column; gap: 10px; }
-        .adv-card {
-          background: white; border-radius: 14px; padding: 14px 16px;
-          border: 1px solid #f1f5f9; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-          display: flex; align-items: center; gap: 12px;
-        }
-        .adv-card-body { flex: 1; min-width: 0; }
-        .adv-card-name { font-weight: 700; font-size: 14px; color: #0f172a; }
-        .adv-card-meta { font-size: 11px; color: #94a3b8; margin-top: 2px; }
-
+        .adv-stat-card { background: white; border-radius: 12px; padding: 14px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+        .adv-mobile-add-btn { display: none; width: 100%; padding: 12px; margin-bottom: 14px; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg,#6366f1,#8b5cf6); border: none; border-radius: 12px; color: white; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(99,102,241,0.3); }
+        .adv-mobile-form { display: none; background: white; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #f1f5f9; margin-bottom: 16px; }
+        .adv-list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 10px; }
         @media (max-width: 768px) {
           .adv-layout { flex-direction: column; }
           .adv-sidebar { display: none; width: 100%; }
@@ -213,10 +310,9 @@ export default function Advances() {
           .adv-mobile-form.adv-mobile-form--open { display: block; }
           .adv-stat-cards { display: flex; flex-direction: row; }
           .adv-stat-card { flex: 1; flex-direction: column; text-align: center; gap: 4px; }
-          .adv-table-wrap { display: none; }
-          .adv-cards { display: flex; }
           .adv-list-header { flex-wrap: wrap; }
         }
+        @keyframes fadeInUp { from { opacity:0; transform:translate(-50%,10px); } to { opacity:1; transform:translate(-50%,0); } }
       `}</style>
 
       {/* ── Mobile: summary stats on top ── */}
@@ -268,12 +364,12 @@ export default function Advances() {
           </div>
         </div>
 
-        {/* Right: list */}
+        {/* Right: grouped list */}
         <div className="adv-main">
           <div className="adv-list-header">
             <div>
               <h1 style={{ fontSize: "20px", fontWeight: 800, color: "#0f172a", marginBottom: "2px" }}>Advance Records</h1>
-              <p style={{ color: "#64748b", fontSize: "13px" }}>{advances.length} total recorded</p>
+              <p style={{ color: "#64748b", fontSize: "13px" }}>{groups.length} worker-week group{groups.length !== 1 ? "s" : ""}</p>
             </div>
             <div style={{ position: "relative" }}>
               <select value={filterEmp} onChange={e => setFilterEmp(e.target.value)}
@@ -285,106 +381,23 @@ export default function Advances() {
             </div>
           </div>
 
-          {/* ── MOBILE: Cards ── */}
-          <div className="adv-cards">
-            {filtered.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "48px 20px", color: "#94a3b8", background: "white", borderRadius: "14px" }}>
-                <Wallet size={36} style={{ margin: "0 auto 12px", opacity: 0.25 }} />
-                <p style={{ fontWeight: 600 }}>No advances recorded</p>
-                <p style={{ fontSize: "12px" }}>Tap "Record Advance" to add one.</p>
-              </div>
-            ) : filtered.map(a => (
-              <div key={a._id} className="adv-card">
-                <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "rgba(239,68,68,0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#dc2626", fontWeight: 700, fontSize: "14px", flexShrink: 0 }}>
-                  {a.employee?.name?.[0] || "?"}
-                </div>
-                <div className="adv-card-body">
-                  <div className="adv-card-name">{a.employee?.name || "Unknown"}</div>
-                  <div className="adv-card-meta">{fmtDate(a.date)}{a.note ? ` · ${a.note}` : ""}</div>
-                </div>
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ fontSize: "16px", fontWeight: 800, color: "#dc2626" }}>−{fmtRupee(a.amount)}</div>
-                  {confirmId === a._id ? (
-                    <div style={{ display: "flex", gap: "6px", marginTop: "6px" }}>
-                      <button onClick={() => handleDelete(a._id)} style={{ padding: "4px 10px", background: "#ef4444", border: "none", borderRadius: "6px", color: "white", fontSize: "12px", cursor: "pointer", fontWeight: 600 }}>Yes</button>
-                      <button onClick={() => setConfirmId(null)} style={{ padding: "4px 10px", background: "#f1f5f9", border: "none", borderRadius: "6px", color: "#64748b", fontSize: "12px", cursor: "pointer" }}>No</button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setConfirmId(a._id)} style={{ marginTop: "4px", background: "rgba(239,68,68,0.08)", border: "none", borderRadius: "7px", width: "30px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", marginLeft: "auto" }}>
-                      <Trash2 size={13} color="#dc2626" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+          {groups.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "60px", color: "#94a3b8", background: "white", borderRadius: "16px", border: "1px solid #f1f5f9" }}>
+              <Wallet size={36} style={{ margin: "0 auto 12px", opacity: 0.25 }} />
+              <p style={{ fontWeight: 600, fontSize: "14px" }}>No advances recorded</p>
+              <p style={{ fontSize: "12px" }}>Use the form to record a cash advance.</p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {groups.map(g => <GroupCard key={g.key} g={g} />)}
 
-            {filtered.length > 0 && (
+              {/* Grand total */}
               <div style={{ background: "white", borderRadius: "12px", padding: "14px 16px", border: "2px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "13px", fontWeight: 700, color: "#64748b" }}>Total ({filtered.length})</span>
+                <span style={{ fontSize: "13px", fontWeight: 700, color: "#64748b" }}>Total ({filtered.length} entries)</span>
                 <span style={{ fontSize: "18px", fontWeight: 800, color: "#dc2626" }}>−{fmtRupee(filtered.reduce((s, a) => s + a.amount, 0))}</span>
               </div>
-            )}
-          </div>
-
-          {/* ── DESKTOP: Table ── */}
-          <div className="adv-table-wrap">
-            {filtered.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "60px", color: "#94a3b8" }}>
-                <Wallet size={36} style={{ margin: "0 auto 12px", opacity: 0.25 }} />
-                <p style={{ fontWeight: 600, fontSize: "14px" }}>No advances recorded</p>
-                <p style={{ fontSize: "12px" }}>Use the form to record a cash advance.</p>
-              </div>
-            ) : (
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ background: "#f8fafc" }}>
-                    {["Worker", "Date", "Amount", "Note", ""].map(h => (
-                      <th key={h} style={{ padding: "11px 20px", textAlign: "left", fontSize: "10px", fontWeight: 700, color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase" }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map(a => (
-                    <tr key={a._id} style={{ borderTop: "1px solid #f1f5f9", transition: "background 0.15s" }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "#fafbfc")}
-                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-                      <td style={{ padding: "14px 20px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <div style={{ width: "34px", height: "34px", borderRadius: "50%", background: "rgba(239,68,68,0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#dc2626", fontWeight: 700, fontSize: "13px" }}>
-                            {a.employee?.name?.[0] || "?"}
-                          </div>
-                          <span style={{ fontWeight: 600, fontSize: "13px", color: "#0f172a" }}>{a.employee?.name || "Unknown"}</span>
-                        </div>
-                      </td>
-                      <td style={{ padding: "14px 20px", fontSize: "13px", color: "#64748b" }}>{fmtDate(a.date)}</td>
-                      <td style={{ padding: "14px 20px" }}><span style={{ fontSize: "15px", fontWeight: 700, color: "#dc2626" }}>−{fmtRupee(a.amount)}</span></td>
-                      <td style={{ padding: "14px 20px", fontSize: "13px", color: "#94a3b8" }}>{a.note || "—"}</td>
-                      <td style={{ padding: "14px 20px" }}>
-                        {confirmId === a._id ? (
-                          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                            <span style={{ fontSize: "12px", color: "#64748b" }}>Delete?</span>
-                            <button onClick={() => handleDelete(a._id)} style={{ padding: "4px 10px", background: "#ef4444", border: "none", borderRadius: "6px", color: "white", fontSize: "12px", cursor: "pointer", fontWeight: 600 }}>Yes</button>
-                            <button onClick={() => setConfirmId(null)} style={{ padding: "4px 10px", background: "#f1f5f9", border: "none", borderRadius: "6px", color: "#64748b", fontSize: "12px", cursor: "pointer" }}>No</button>
-                          </div>
-                        ) : (
-                          <button onClick={() => setConfirmId(a._id)} style={{ display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px", background: "#f1f5f9", border: "none", borderRadius: "7px", fontSize: "12px", color: "#94a3b8", cursor: "pointer" }}>
-                            <Trash2 size={13} />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr style={{ background: "#f8fafc", borderTop: "2px solid #e2e8f0" }}>
-                    <td colSpan={2} style={{ padding: "12px 20px", fontSize: "13px", fontWeight: 700, color: "#64748b" }}>Total ({filtered.length} entries)</td>
-                    <td style={{ padding: "12px 20px" }}><span style={{ fontSize: "16px", fontWeight: 800, color: "#dc2626" }}>−{fmtRupee(filtered.reduce((s, a) => s + a.amount, 0))}</span></td>
-                    <td colSpan={2} />
-                  </tr>
-                </tfoot>
-              </table>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
