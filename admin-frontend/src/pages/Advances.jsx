@@ -38,6 +38,87 @@ function Toast({ msg, type }) {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// AdvanceForm is defined OUTSIDE Advances so its identity is stable across
+// parent re-renders. This prevents React from unmounting/remounting the form
+// on every keystroke, which was causing the mobile keyboard to dismiss.
+// ─────────────────────────────────────────────────────────────────────────────
+const inp = { width: "100%", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", fontSize: "13px", color: "#0f172a", outline: "none", fontFamily: "inherit" };
+const lbl = { display: "block", fontSize: "11px", fontWeight: 700, color: "#64748b", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" };
+
+function AdvanceForm({ form, setForm, employees, saving, onSubmit }) {
+  return (
+    <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+      {/* Worker */}
+      <div>
+        <label style={lbl}>Worker *</label>
+        <div style={{ position: "relative" }}>
+          <select value={form.employeeId}
+            onChange={e => setForm(f => ({ ...f, employeeId: e.target.value }))}
+            style={{ ...inp, appearance: "none", paddingRight: "32px" }}>
+            <option value="">Select worker…</option>
+            {employees.map(emp => <option key={emp._id} value={emp._id}>{emp.name}</option>)}
+          </select>
+          <ChevronDown size={13} color="#94a3b8" style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+        </div>
+      </div>
+
+      {/* Amount + Date */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+        <div>
+          <label style={lbl}>Amount (₹) *</label>
+          <div style={{ position: "relative" }}>
+            <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#64748b", fontWeight: 600 }}>₹</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              required
+              value={form.amount}
+              placeholder="500"
+              onChange={e => {
+                const val = e.target.value.replace(/[^0-9]/g, "");
+                setForm(f => ({ ...f, amount: val }));
+              }}
+              style={{ ...inp, paddingLeft: "28px" }}
+              onFocus={e => (e.target.style.borderColor = "#6366f1")}
+              onBlur={e  => (e.target.style.borderColor = "#e2e8f0")}
+            />
+          </div>
+        </div>
+        <div>
+          <label style={lbl}>Date</label>
+          <input type="date" value={form.date} max={today()}
+            onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+            style={inp}
+            onFocus={e => (e.target.style.borderColor = "#6366f1")}
+            onBlur={e  => (e.target.style.borderColor = "#e2e8f0")} />
+        </div>
+      </div>
+
+      {/* Note */}
+      <div>
+        <label style={lbl}>Note <span style={{ fontWeight: 400, textTransform: "none", color: "#94a3b8" }}>(optional)</span></label>
+        <input value={form.note}
+          onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
+          placeholder="e.g. medical emergency" style={inp}
+          onFocus={e => (e.target.style.borderColor = "#6366f1")}
+          onBlur={e  => (e.target.style.borderColor = "#e2e8f0")} />
+      </div>
+
+      <button type="submit" disabled={saving} style={{
+        width: "100%", padding: "11px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+        background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", borderRadius: "11px",
+        color: "white", fontSize: "13px", fontWeight: 600, cursor: "pointer",
+        boxShadow: "0 4px 15px rgba(99,102,241,0.3)", opacity: saving ? 0.7 : 1,
+      }}>
+        <Plus size={15} /> {saving ? "Saving…" : "Record Advance"}
+      </button>
+    </form>
+  );
+}
+
+
 export default function Advances() {
   const [employees, setEmployees] = useState([]);
   const [advances,  setAdvances]  = useState([]);
@@ -139,67 +220,6 @@ export default function Advances() {
   })();
   const totalAll = advances.reduce((s, a) => s + a.amount, 0);
 
-  const inp = { width: "100%", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", fontSize: "13px", color: "#0f172a", outline: "none", fontFamily: "inherit" };
-  const lbl = { display: "block", fontSize: "11px", fontWeight: 700, color: "#64748b", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" };
-
-  // ── Form JSX (plain variable, NOT a nested component — avoids remount on every keystroke) ──
-  const formJSX = (
-    <form onSubmit={handleAdd} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-      <div>
-        <label style={lbl}>Worker *</label>
-        <div style={{ position: "relative" }}>
-          <select value={form.employeeId} onChange={e => setForm(f => ({ ...f, employeeId: e.target.value }))}
-            style={{ ...inp, appearance: "none", paddingRight: "32px" }}>
-            <option value="">Select worker…</option>
-            {employees.map(emp => <option key={emp._id} value={emp._id}>{emp.name}</option>)}
-          </select>
-          <ChevronDown size={13} color="#94a3b8" style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-        <div>
-          <label style={lbl}>Amount (₹) *</label>
-          <div style={{ position: "relative" }}>
-            <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#64748b", fontWeight: 600 }}>₹</span>
-            <input type="text" inputMode="numeric" pattern="[0-9]*" min="1" value={form.amount} required
-              onChange={e => {
-                const val = e.target.value.replace(/[^0-9]/g, ""); // only digits
-                setForm(f => ({ ...f, amount: val }));
-              }}
-              placeholder="500" style={{ ...inp, paddingLeft: "28px" }}
-              onFocus={e => (e.target.style.borderColor = "#6366f1")}
-              onBlur={e  => (e.target.style.borderColor = "#e2e8f0")} />
-          </div>
-        </div>
-        <div>
-          <label style={lbl}>Date</label>
-          <input type="date" value={form.date} max={today()}
-            onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-            style={inp}
-            onFocus={e => (e.target.style.borderColor = "#6366f1")}
-            onBlur={e  => (e.target.style.borderColor = "#e2e8f0")} />
-        </div>
-      </div>
-
-      <div>
-        <label style={lbl}>Note <span style={{ fontWeight: 400, textTransform: "none", color: "#94a3b8" }}>(optional)</span></label>
-        <input value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
-          placeholder="e.g. medical emergency" style={inp}
-          onFocus={e => (e.target.style.borderColor = "#6366f1")}
-          onBlur={e  => (e.target.style.borderColor = "#e2e8f0")} />
-      </div>
-
-      <button type="submit" disabled={saving} style={{
-        width: "100%", padding: "11px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-        background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none", borderRadius: "11px",
-        color: "white", fontSize: "13px", fontWeight: 600, cursor: "pointer",
-        boxShadow: "0 4px 15px rgba(99,102,241,0.3)", opacity: saving ? 0.7 : 1,
-      }}>
-        <Plus size={15} /> {saving ? "Saving…" : "Record Advance"}
-      </button>
-    </form>
-  );
 
   // ── Group card (used for both mobile and desktop) ──────────────────────────
   const GroupCard = ({ g }) => {
@@ -341,7 +361,7 @@ export default function Advances() {
       <div className={`adv-mobile-form ${showForm ? "adv-mobile-form--open" : ""}`}>
         <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#0f172a", marginBottom: "4px" }}>Record Advance</h2>
         <p style={{ color: "#94a3b8", fontSize: "12px", marginBottom: "16px" }}>Cash given to worker mid-week</p>
-        {formJSX}
+        <AdvanceForm form={form} setForm={setForm} employees={employees} saving={saving} onSubmit={handleAdd} />
       </div>
 
       {/* ── Main layout ── */}
@@ -352,7 +372,7 @@ export default function Advances() {
           <div className="adv-form-card">
             <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#0f172a", marginBottom: "4px" }}>Record Advance</h2>
             <p style={{ color: "#94a3b8", fontSize: "12px", marginBottom: "20px" }}>Cash given to worker mid-week</p>
-            {formJSX}
+            <AdvanceForm form={form} setForm={setForm} employees={employees} saving={saving} onSubmit={handleAdd} />
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
