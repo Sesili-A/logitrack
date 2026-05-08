@@ -13,7 +13,9 @@ const attendanceSchema = new mongoose.Schema({
     required: true,
   },
   // Site where the worker was deployed that day
-  site:     { type: String, default: null },
+  site:         { type: String, default: null },
+  // Extra hours worked (only relevant when status === "Overtime")
+  overtimeHours: { type: Number, default: 0, min: 0 },
   markedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
   remarks:  String,
   adminId:  { type: mongoose.Schema.Types.ObjectId, ref: "Employee" }, // Added for multi-tenancy

@@ -22,12 +22,13 @@ exports.markAttendance = async (req, res) => {
     await Attendance.deleteMany({ date: { $gte: dayStart, $lte: dayEnd }, adminId: req.user.id });
 
     const data = records.map(r => ({
-      employee: r.employeeId,
-      status:   r.status,
-      site:     r.site || null,
-      date:     targetDate,
-      markedBy: req.user.id,
-      adminId:  req.user.id,
+      employee:      r.employeeId,
+      status:        r.status,
+      site:          r.site || null,
+      overtimeHours: r.status === "Overtime" ? (Number(r.overtimeHours) || 0) : 0,
+      date:          targetDate,
+      markedBy:      req.user.id,
+      adminId:       req.user.id,
     }));
 
     await Attendance.insertMany(data);
@@ -52,7 +53,11 @@ exports.getTodayAttendance = async (req, res) => {
     // Return map { employeeId: { status, site } }
     const map = {};
     records.forEach(r => {
-      map[r.employee.toString()] = { status: r.status, site: r.site || "" };
+      map[r.employee.toString()] = {
+        status:        r.status,
+        site:          r.site || "",
+        overtimeHours: r.overtimeHours || 0,
+      };
     });
     res.json(map);
   } catch (err) {
@@ -90,10 +95,13 @@ exports.getDashboardStats = async (req, res) => {
     let weeklyGross = 0, weeklyAdvance = 0, weeklyNet = 0;
     employees.forEach(emp => {
       const att  = weekAttend.filter(a => a.employee.toString() === emp._id.toString());
-      const days = att.filter(a => a.status === "Present").length
-                 + att.filter(a => a.status === "Half-Day").length * 0.5
-                 + att.filter(a => a.status === "Overtime").length * 1.5;
-      const gross = days * (emp.dailyWage || 0);
+      const wage = emp.dailyWage || 0;
+      let gross = 0;
+      att.forEach(a => {
+        if (a.status === "Present")  gross += wage;
+        if (a.status === "Half-Day") gross += wage * 0.5;
+        if (a.status === "Overtime") gross += wage + (wage / 8) * (a.overtimeHours || 0);
+      });
       const adv   = weekAdvances
         .filter(a => a.employee.toString() === emp._id.toString())
         .reduce((s, a) => s + a.amount, 0);
@@ -156,8 +164,16 @@ exports.getWeeklyPayroll = async (req, res) => {
       const halfDays     = empAtt.filter(a => a.status === "Half-Day").length;
       const absentDays   = empAtt.filter(a => a.status === "Absent").length;
       const overtimeDays = empAtt.filter(a => a.status === "Overtime").length;
-      const effectiveDays = presentDays + halfDays * 0.5 + overtimeDays * 1.5;
-      const grossWage     = effectiveDays * (emp.dailyWage || 0);
+      const totalOvertimeHours = empAtt
+        .filter(a => a.status === "Overtime")
+        .reduce((s, a) => s + (a.overtimeHours || 0), 0);
+      const wage = emp.dailyWage || 0;
+      // effectiveDays: present=1, half=0.5, overtime=1 + (OT hours / 8)
+      const effectiveDays = presentDays + halfDays * 0.5 + overtimeDays + (totalOvertimeHours / 8);
+      const grossWage     = presentDays * wage
+                          + halfDays * wage * 0.5
+                          + empAtt.filter(a => a.status === "Overtime")
+                              .reduce((s, a) => s + wage + (wage / 8) * (a.overtimeHours || 0), 0);
 
       const empAdvances  = advances.filter(a => a.employee.toString() === emp._id.toString());
       const totalAdvance = empAdvances.reduce((s, a) => s + a.amount, 0);
@@ -168,9 +184,10 @@ exports.getWeeklyPayroll = async (req, res) => {
       const siteDays = empAtt
         .filter(a => a.site && (a.status === "Present" || a.status === "Half-Day" || a.status === "Overtime"))
         .map(a => ({
-          date:   a.date,
-          site:   a.site,
-          status: a.status,
+          date:          a.date,
+          site:          a.site,
+          status:        a.status,
+          overtimeHours: a.overtimeHours || 0,
         }))
         .sort((a, b) => new Date(a.date) - new Date(b.date));
 
@@ -180,6 +197,7 @@ exports.getWeeklyPayroll = async (req, res) => {
         _id: emp._id, name: emp.name, phone: emp.phone,
         dailyWage: emp.dailyWage || 0,
         presentDays, halfDays, absentDays, overtimeDays,
+        totalOvertimeHours,
         effectiveDays, grossWage, totalAdvance, netPayable, carryOver,
         siteDays,
         uniqueSites,
@@ -198,13 +216,16 @@ exports.getWeeklyPayroll = async (req, res) => {
         if (!siteStats[siteName]) siteStats[siteName] = { cost: 0, workerIds: new Set(), dayWise: {} };
         let dayCost = p.dailyWage;
         if (sd.status === "Half-Day") dayCost *= 0.5;
-        if (sd.status === "Overtime") dayCost *= 1.5;
+        if (sd.status === "Overtime") dayCost = p.dailyWage + (p.dailyWage / 8) * (sd.overtimeHours || 0);
         siteStats[siteName].cost += dayCost;
         siteStats[siteName].workerIds.add(p._id.toString());
         // Day-wise tracking
         const dayKey = new Date(sd.date).toISOString().split("T")[0];
-        if (!siteStats[siteName].dayWise[dayKey]) siteStats[siteName].dayWise[dayKey] = new Set();
-        siteStats[siteName].dayWise[dayKey].add(p._id.toString());
+        if (!siteStats[siteName].dayWise[dayKey]) siteStats[siteName].dayWise[dayKey] = { workers: new Set(), statuses: {} };
+        siteStats[siteName].dayWise[dayKey].workers.add(p._id.toString());
+        // track per-status counts for display
+        const st = sd.status;
+        siteStats[siteName].dayWise[dayKey].statuses[st] = (siteStats[siteName].dayWise[dayKey].statuses[st] || 0) + 1;
       });
     });
     // Convert Sets to counts for JSON serialisation
@@ -217,7 +238,10 @@ exports.getWeeklyPayroll = async (req, res) => {
           dayWise: Object.fromEntries(
             Object.entries(v.dayWise)
               .sort(([a], [b]) => a.localeCompare(b))
-              .map(([date, ids]) => [date, ids.size])
+              .map(([date, dv]) => [date, {
+                count:    dv.workers.size,
+                statuses: dv.statuses,
+              }])
           ),
         }
       ])
@@ -256,12 +280,13 @@ exports.getAttendanceHistory = async (req, res) => {
 
     res.json({
       records: records.map(r => ({
-        _id:    r._id,
-        name:   r.employee?.name  || "Unknown",
-        phone:  r.employee?.phone || "—",
-        status: r.status,
-        site:   r.site || "—",
-        date:   r.date,
+        _id:           r._id,
+        name:          r.employee?.name  || "Unknown",
+        phone:         r.employee?.phone || "—",
+        status:        r.status,
+        site:          r.site || "—",
+        date:          r.date,
+        overtimeHours: r.overtimeHours || 0,
       })),
       total,
       pages: Math.ceil(total / limit),

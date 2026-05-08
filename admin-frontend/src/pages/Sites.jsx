@@ -51,7 +51,11 @@ export default function Sites() {
     .sort((a, b) => b.cost - a.cost);
 
   const totalCost    = siteArray.reduce((s, x) => s + x.cost, 0);
-  const totalWorkers = Math.max(...siteArray.map(x => x.workers), 0);
+  // dayWise values are now { count, statuses } objects
+  const maxPeak = siteArray.length > 0
+    ? Math.max(...siteArray.flatMap(x => Object.values(x.dayWise || {}).map(d => (typeof d === "object" ? d.count : d))))
+    : 0;
+  const totalWorkers = maxPeak;
 
   const colours = ["#6366f1","#10b981","#f59e0b","#ef4444","#8b5cf6","#0ea5e9","#ec4899"];
 
@@ -149,7 +153,12 @@ export default function Sites() {
               const col  = colours[idx % colours.length];
               const isOpen = expanded[s.site];
               const dayWiseEntries = Object.entries(s.dayWise || {}).sort(([a],[b]) => a.localeCompare(b));
-              const peakWorkers = dayWiseEntries.length > 0 ? Math.max(...dayWiseEntries.map(([,v]) => v)) : s.workers;
+              // support both old (number) and new ({ count, statuses }) shape
+              const getDayCount = (dv) => typeof dv === "object" ? dv.count : dv;
+              const getDayStatuses = (dv) => typeof dv === "object" ? (dv.statuses || {}) : {};
+              const peakWorkers = dayWiseEntries.length > 0
+                ? Math.max(...dayWiseEntries.map(([,v]) => getDayCount(v)))
+                : s.workers;
 
               return (
                 <div key={s.site} className="site-row">
@@ -217,7 +226,10 @@ export default function Sites() {
                           </tr>
                         </thead>
                         <tbody>
-                          {dayWiseEntries.map(([dateStr, count]) => (
+                          {dayWiseEntries.map(([dateStr, dv]) => {
+                            const count    = getDayCount(dv);
+                            const statuses = getDayStatuses(dv);
+                            return (
                             <tr key={dateStr} className="daywise-row">
                               <td style={{ fontWeight:600, color:"#0f172a" }}>{fmtDayLabel(dateStr)}</td>
                               <td>
@@ -225,7 +237,11 @@ export default function Sites() {
                                   <div style={{ width:"32px", height:"32px", borderRadius:"50%", background:`${col}18`, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, color:col, fontSize:"14px" }}>
                                     {count}
                                   </div>
-                                  <span style={{ color:"#64748b" }}>{count} worker{count !== 1 ? "s" : ""}</span>
+                                  <div style={{ display:"flex", gap:"4px", flexWrap:"wrap" }}>
+                                    {statuses["Present"] > 0 && <span style={{ fontSize:"10px", padding:"2px 6px", background:"rgba(16,185,129,0.1)", color:"#059669", borderRadius:"4px", fontWeight:600 }}>{statuses["Present"]}P</span>}
+                                    {statuses["Half-Day"] > 0 && <span style={{ fontSize:"10px", padding:"2px 6px", background:"rgba(245,158,11,0.1)", color:"#d97706", borderRadius:"4px", fontWeight:600 }}>{statuses["Half-Day"]}½</span>}
+                                    {statuses["Overtime"] > 0 && <span style={{ fontSize:"10px", padding:"2px 6px", background:"rgba(245,143,124,0.15)", color:"#e07a67", borderRadius:"4px", fontWeight:600 }}>{statuses["Overtime"]}OT</span>}
+                                  </div>
                                 </div>
                               </td>
                               <td style={{ width:"40%" }}>
@@ -234,7 +250,8 @@ export default function Sites() {
                                 </div>
                               </td>
                             </tr>
-                          ))}
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>

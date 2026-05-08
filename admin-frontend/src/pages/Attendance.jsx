@@ -61,7 +61,7 @@ export default function Attendance() {
       const defaultSite = siteRes.data.length > 0 ? siteRes.data[0].name : "";
       const init = {};
       empRes.data.forEach(emp => {
-        init[emp._id] = dbRecords[emp._id] || { status: "", site: defaultSite };
+        init[emp._id] = dbRecords[emp._id] || { status: "", site: defaultSite, overtimeHours: 0 };
       });
       setRecords(init);
     } catch { showToast("Failed to load data", "error"); }
@@ -71,15 +71,24 @@ export default function Attendance() {
 
   const setStatus = (empId, status) => {
     setRecords(r => {
-      const old = r[empId] || { status: "", site: "" };
-      return { ...r, [empId]: { ...old, status } };
+      const old = r[empId] || { status: "", site: "", overtimeHours: 0 };
+      // reset OT hours when switching away from Overtime
+      const overtimeHours = status === "Overtime" ? (old.overtimeHours || 0) : 0;
+      return { ...r, [empId]: { ...old, status, overtimeHours } };
     });
   };
 
   const setSite = (empId, site) => {
     setRecords(r => {
-      const old = r[empId] || { status: "", site: "" };
+      const old = r[empId] || { status: "", site: "", overtimeHours: 0 };
       return { ...r, [empId]: { ...old, site } };
+    });
+  };
+
+  const setOvertimeHours = (empId, hours) => {
+    setRecords(r => {
+      const old = r[empId] || { status: "Overtime", site: "", overtimeHours: 0 };
+      return { ...r, [empId]: { ...old, overtimeHours: Math.max(0, Math.min(24, Number(hours) || 0)) } };
     });
   };
 
@@ -101,7 +110,8 @@ export default function Attendance() {
         const r  = records[emp._id] || {};
         const st = r.status || "Present";
         const si = r.site   || null;
-        return { employeeId: emp._id, status: st, site: st !== "Absent" ? si : null };
+        const oh = st === "Overtime" ? (Number(r.overtimeHours) || 0) : 0;
+        return { employeeId: emp._id, status: st, site: st !== "Absent" ? si : null, overtimeHours: oh };
       });
       await API.post("/attendance/mark", { records: recordsArr, date }, { headers: hdrs() });
       setSubmitted(true);
@@ -121,13 +131,19 @@ export default function Attendance() {
     }).length,
   }));
 
+  const calcDayPay = (status, overtimeHours, dailyWage) => {
+    const w = dailyWage || 0;
+    if (status === "Present")  return w;
+    if (status === "Half-Day") return w * 0.5;
+    if (status === "Overtime") return w + (w / 8) * (overtimeHours || 0);
+    return 0;
+  };
+
   const todayPay = employees.reduce((sum, emp) => {
-    const r = records[emp._id];
+    const r  = records[emp._id] || {};
     const st = typeof r === "string" ? r : r?.status;
-    if (st === "Present")  return sum + (emp.dailyWage || 0);
-    if (st === "Half-Day") return sum + (emp.dailyWage || 0) * 0.5;
-    if (st === "Overtime") return sum + (emp.dailyWage || 0) * 1.5;
-    return sum;
+    const oh = typeof r === "string" ? 0 : (r?.overtimeHours || 0);
+    return sum + calcDayPay(st, oh, emp.dailyWage);
   }, 0);
 
   return (
@@ -353,12 +369,13 @@ export default function Attendance() {
             <p style={{ fontSize: "12px" }}>Add workers first.</p>
           </div>
         ) : employees.map(emp => {
-          const rec     = records[emp._id] || {};
-          const status  = rec.status  || "";
-          const recSite = rec.site    || "";
-          const c       = cfg(status);
-          const dayPay  = status === "Present" ? emp.dailyWage : status === "Half-Day" ? (emp.dailyWage||0)*0.5 : status === "Overtime" ? (emp.dailyWage||0)*1.5 : 0;
-          const needsSite = status !== "Absent";
+          const rec          = records[emp._id] || {};
+          const status       = rec.status  || "";
+          const recSite      = rec.site    || "";
+          const overtimeHours = rec.overtimeHours || 0;
+          const c            = cfg(status);
+          const dayPay       = calcDayPay(status, overtimeHours, emp.dailyWage);
+          const needsSite    = status !== "Absent";
 
           return (
             <div key={emp._id} className="att-card" style={{ borderLeft: `3px solid ${c.color}` }}>
@@ -369,7 +386,10 @@ export default function Attendance() {
                   </div>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: "14px", color: "#0f172a" }}>{emp.name}</div>
-                    <div style={{ fontSize: "11px", color: "#94a3b8" }}>{fmtRupee(emp.dailyWage)}/day</div>
+                    <div style={{ fontSize: "11px", color: "#94a3b8" }}>
+                      {fmtRupee(emp.dailyWage)}/day
+                      {status === "Half-Day" && <span style={{ marginLeft: "6px", background: "rgba(245,158,11,0.15)", color: "#d97706", padding: "1px 5px", borderRadius: "4px", fontWeight: 700 }}>½ Day</span>}
+                    </div>
                   </div>
                 </div>
                 <div className="att-card-pay" style={{ color: dayPay > 0 ? "#059669" : "#cbd5e1" }}>
@@ -390,6 +410,21 @@ export default function Attendance() {
                   </button>
                 ))}
               </div>
+
+              {/* OT hours input */}
+              {status === "Overtime" && (
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(245,143,124,0.08)", border: "1px solid rgba(245,143,124,0.3)", borderRadius: "8px", padding: "8px 12px", marginBottom: "8px" }}>
+                  <Clock size={13} color="#e07a67" />
+                  <span style={{ fontSize: "12px", color: "#64748b", flex: 1 }}>OT Hours</span>
+                  <input
+                    type="number" min="0" max="24" step="0.5"
+                    value={overtimeHours}
+                    onChange={e => setOvertimeHours(emp._id, e.target.value)}
+                    style={{ width: "54px", padding: "4px 8px", border: "1px solid rgba(245,143,124,0.4)", borderRadius: "6px", fontSize: "13px", fontWeight: 700, color: "#e07a67", background: "white", outline: "none", textAlign: "center" }}
+                  />
+                  <span style={{ fontSize: "11px", color: "#94a3b8" }}>hrs = {fmtRupee(Math.round((emp.dailyWage||0)/8*overtimeHours))} OT pay</span>
+                </div>
+              )}
 
               {/* Site selector */}
               {needsSite && sites.length > 0 && (
@@ -424,12 +459,13 @@ export default function Attendance() {
                   <p>No workers found. Add workers first.</p>
                 </td></tr>
               ) : employees.map((emp) => {
-                const rRaw   = records[emp._id];
-                const status = typeof rRaw === "string" ? rRaw : (rRaw?.status || "Present");
-                const recSite= typeof rRaw === "string" ? "" : (rRaw?.site || "");
-                const c      = cfg(status);
-                const dayPay = status === "Present" ? emp.dailyWage : status === "Half-Day" ? (emp.dailyWage || 0) * 0.5 : status === "Overtime" ? (emp.dailyWage || 0) * 1.5 : 0;
-                const needsSite = status !== "Absent";
+                const rRaw        = records[emp._id] || {};
+                const status      = typeof rRaw === "string" ? rRaw : (rRaw?.status || "Present");
+                const recSite     = typeof rRaw === "string" ? "" : (rRaw?.site || "");
+                const overtimeHours = typeof rRaw === "string" ? 0 : (rRaw?.overtimeHours || 0);
+                const c           = cfg(status);
+                const dayPay      = calcDayPay(status, overtimeHours, emp.dailyWage);
+                const needsSite   = status !== "Absent";
 
                 return (
                   <tr key={emp._id} style={{ borderTop: "1px solid #f1f5f9" }}>
@@ -446,13 +482,26 @@ export default function Attendance() {
                     </td>
                     <td style={{ padding: "14px 20px" }}><span style={{ fontSize: "13px", fontWeight: 600, color: "#059669" }}>{fmtRupee(emp.dailyWage)}/day</span></td>
                     <td style={{ padding: "14px 20px" }}>
-                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
                         {STATUS_OPTIONS.map(opt => (
                           <button key={opt.value} onClick={() => setStatus(emp._id, opt.value)}
                             style={{ padding: "5px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: 600, cursor: "pointer", background: status === opt.value ? opt.bg : "transparent", color: status === opt.value ? opt.color : "#94a3b8", border: `1px solid ${status === opt.value ? opt.border : "#e2e8f0"}` }}>
                             {opt.label}
                           </button>
                         ))}
+                        {/* OT hours inline input */}
+                        {status === "Overtime" && (
+                          <div style={{ display: "flex", alignItems: "center", gap: "5px", background: "rgba(245,143,124,0.08)", border: "1px solid rgba(245,143,124,0.35)", borderRadius: "8px", padding: "4px 10px", marginTop: "4px" }}>
+                            <Clock size={12} color="#e07a67" />
+                            <input
+                              type="number" min="0" max="24" step="1"
+                              value={overtimeHours}
+                              onChange={e => setOvertimeHours(emp._id, e.target.value)}
+                              style={{ width: "46px", border: "none", background: "transparent", fontSize: "13px", fontWeight: 700, color: "#e07a67", outline: "none", textAlign: "center" }}
+                            />
+                            <span style={{ fontSize: "10px", color: "#94a3b8", whiteSpace: "nowrap" }}>hrs OT</span>
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td style={{ padding: "14px 20px" }}>
@@ -467,9 +516,17 @@ export default function Attendance() {
                       ) : <span style={{ fontSize: "12px", color: "#cbd5e1" }}>Not Applicable</span>}
                     </td>
                     <td style={{ padding: "14px 20px" }}>
-                      <span style={{ fontSize: "14px", fontWeight: 700, color: dayPay > 0 ? "#059669" : "#94a3b8" }}>
-                        {dayPay > 0 ? fmtRupee(dayPay) : "—"}
-                      </span>
+                      <div>
+                        <span style={{ fontSize: "14px", fontWeight: 700, color: dayPay > 0 ? "#059669" : "#94a3b8" }}>
+                          {dayPay > 0 ? fmtRupee(Math.round(dayPay)) : "—"}
+                        </span>
+                        {status === "Half-Day" && (
+                          <div style={{ fontSize: "10px", color: "#d97706", fontWeight: 600, marginTop: "2px" }}>½ Day rate</div>
+                        )}
+                        {status === "Overtime" && overtimeHours > 0 && (
+                          <div style={{ fontSize: "10px", color: "#e07a67", fontWeight: 600, marginTop: "2px" }}>Base + {overtimeHours}h OT</div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
