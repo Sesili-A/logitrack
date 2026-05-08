@@ -8,6 +8,8 @@ import Advances      from "./pages/Advances";
 import WeeklyPayroll from "./pages/WeeklyPayroll";
 import Settings      from "./pages/Settings";
 import Sites         from "./pages/Sites";
+import Projects      from "./pages/Projects";
+import Reports       from "./pages/Reports";
 
 function App() {
   return (
@@ -18,8 +20,10 @@ function App() {
         <Route path="/attendance" element={<Attendance />} />
         <Route path="/employees"  element={<Employees />} />
         <Route path="/sites"      element={<Sites />} />
+        <Route path="/projects"   element={<Projects />} />
         <Route path="/advances"   element={<Advances />} />
         <Route path="/payroll"    element={<WeeklyPayroll />} />
+        <Route path="/reports"    element={<Reports />} />
         <Route path="/settings"   element={<Settings />} />
       </Routes>
     </BrowserRouter>

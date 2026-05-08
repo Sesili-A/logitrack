@@ -241,11 +241,25 @@ export default function Advances() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 700, fontSize: "14px", color: "#0f172a" }}>{g.empName}</div>
             <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "2px" }}>
-              {g.weekLabel}
-              {multiEntry && (
-                <span style={{ marginLeft: "8px", background: "rgba(245,143,124,0.1)", color: "#F58F7C", padding: "1px 6px", borderRadius: "8px", fontWeight: 600 }}>
-                  {g.records.length} entries
-                </span>
+              {multiEntry ? (
+                <>
+                  {g.weekLabel}
+                  <span style={{ marginLeft: "8px", background: "rgba(245,143,124,0.1)", color: "#F58F7C", padding: "1px 6px", borderRadius: "8px", fontWeight: 600 }}>
+                    {g.records.length} entries
+                  </span>
+                </>
+              ) : (
+                /* Single entry: show date + note prominently */
+                <div style={{ display:"flex", flexDirection:"column", gap:"2px" }}>
+                  <span style={{ color:"#64748b", fontWeight:600 }}>
+                    {fmtDate(g.records[0].date)}
+                  </span>
+                  {g.records[0].note && (
+                    <span style={{ color:"#94a3b8", fontSize:"11px", fontStyle:"italic" }}>
+                      {g.records[0].note}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           </div>

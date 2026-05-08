@@ -293,3 +293,62 @@ exports.getAttendanceHistory = async (req, res) => {
     });
   } catch (err) { res.status(500).json(err); }
 };
+
+// ── Monthly Report (for download) ────────────────────────────────────────────
+exports.getMonthlyReport = async (req, res) => {
+  try {
+    const { year, month } = req.query; // month is 1-12
+    if (!year || !month) return res.status(400).json({ msg: "year and month required" });
+
+    const y = parseInt(year);
+    const m = parseInt(month) - 1; // 0-indexed for Date
+
+    const from = new Date(y, m, 1, 0, 0, 0, 0);
+    const to   = new Date(y, m + 1, 0, 23, 59, 59, 999); // last day of month
+
+    const employees  = await Employee.find({ role: "employee", adminId: req.user.id }).sort({ name: 1 });
+    const attendance = await Attendance.find({
+      date: { $gte: from, $lte: to },
+      adminId: req.user.id,
+    });
+
+    // Get all unique dates in the month that have records
+    const daysInMonth = to.getDate();
+    const allDays = Array.from({ length: daysInMonth }, (_, i) => {
+      const d = new Date(y, m, i + 1);
+      return d.toISOString().split("T")[0];
+    });
+
+    const report = employees.map(emp => {
+      const empAtt = attendance.filter(a => a.employee.toString() === emp._id.toString());
+      const wage   = emp.dailyWage || 0;
+
+      let grossWage = 0;
+      const dayMap  = {};
+
+      empAtt.forEach(a => {
+        const key = new Date(a.date).toISOString().split("T")[0];
+        dayMap[key] = { status: a.status, site: a.site || "", overtimeHours: a.overtimeHours || 0 };
+        if (a.status === "Present")  grossWage += wage;
+        if (a.status === "Half-Day") grossWage += wage * 0.5;
+        if (a.status === "Overtime") grossWage += wage + (wage / 8) * (a.overtimeHours || 0);
+      });
+
+      const presentDays  = empAtt.filter(a => a.status === "Present").length;
+      const halfDays     = empAtt.filter(a => a.status === "Half-Day").length;
+      const overtimeDays = empAtt.filter(a => a.status === "Overtime").length;
+      const absentDays   = empAtt.filter(a => a.status === "Absent").length;
+
+      return {
+        name:        emp.name,
+        phone:       emp.phone || "",
+        dailyWage:   wage,
+        presentDays, halfDays, overtimeDays, absentDays,
+        grossWage:   Math.round(grossWage),
+        dayMap,      // { "2025-04-01": { status, site, overtimeHours } }
+      };
+    });
+
+    res.json({ year: y, month: m + 1, allDays, report });
+  } catch (err) { res.status(500).json(err); }
+};

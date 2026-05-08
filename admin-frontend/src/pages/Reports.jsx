@@ -27,6 +27,36 @@ const fmt = iso => new Date(iso).toLocaleDateString("en-US", { year: "numeric", 
 const today = () => new Date().toISOString().split("T")[0];
 const monthStart = () => { const d = new Date(); d.setDate(1); return d.toISOString().split("T")[0]; };
 
+// ── Monthly CSV download ──────────────────────────────────────────────────────
+async function downloadMonthlyCSV(year, month) {
+  const hdrs2 = { Authorization: `Bearer ${token()}` };
+  const res = await API.get(`/attendance/monthly?year=${year}&month=${month}`, { headers: hdrs2 });
+  const { allDays, report } = res.data;
+
+  // Status abbreviations
+  const abbr = s => s === "Present" ? "P" : s === "Half-Day" ? "H" : s === "Overtime" ? "OT" : s === "Absent" ? "A" : "—";
+
+  const header = ["Name", "Phone", "Daily Wage", ...allDays.map(d => d.slice(8)), // day numbers
+    "Present", "Half-Day", "Overtime", "Absent", "Gross Pay (₹)"];
+
+  const rows = report.map(emp => [
+    emp.name, emp.phone, emp.dailyWage,
+    ...allDays.map(d => {
+      const rec = emp.dayMap[d];
+      return rec ? abbr(rec.status) : "";
+    }),
+    emp.presentDays, emp.halfDays, emp.overtimeDays, emp.absentDays, emp.grossWage,
+  ]);
+
+  const monthName = new Date(year, month-1, 1).toLocaleDateString("en-IN",{month:"long",year:"numeric"});
+  const csv = [[`Attendance Report – ${monthName}`], header, ...rows].map(r => r.join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url; a.download = `attendance_${year}_${String(month).padStart(2,"0")}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
@@ -51,8 +81,14 @@ export default function Reports() {
   const [total,    setTotal]    = useState(0);
   const [pages,    setPages]    = useState(1);
   const [loading,  setLoading]  = useState(false);
-  const [activeTab, setActiveTab] = useState("records"); // "records" | "summary"
+  const [activeTab, setActiveTab] = useState("records");
   const [search,   setSearch]   = useState("");
+
+  // Monthly download picker state
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [dlYear,  setDlYear]  = useState(new Date().getFullYear());
+  const [dlMonth, setDlMonth] = useState(new Date().getMonth() + 1);
+  const [dlLoading, setDlLoading] = useState(false);
 
   const [filters, setFilters] = useState({
     from:       monthStart(),
@@ -93,7 +129,15 @@ export default function Reports() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Export CSV
+  // Monthly download handler
+  const handleMonthlyDownload = async () => {
+    setDlLoading(true);
+    try { await downloadMonthlyCSV(dlYear, dlMonth); setShowMonthPicker(false); }
+    catch { alert("Failed to download. Please try again."); }
+    finally { setDlLoading(false); }
+  };
+
+  // Export CSV (existing — filtered records)
   const exportCSV = () => {
     const rows = [
       ["Name", "Email", "Department", "Position", "Date", "Status"],
@@ -139,19 +183,54 @@ export default function Reports() {
             Attendance analytics &amp; history
           </p>
         </div>
-        <button onClick={exportCSV} style={{
-          display: "flex", alignItems: "center", gap: "8px",
-          padding: "11px 20px", background: "linear-gradient(135deg, #10b981, #059669)",
-          border: "none", borderRadius: "12px", color: "white",
-          fontSize: "14px", fontWeight: 600, cursor: "pointer",
-          boxShadow: "0 4px 15px rgba(16,185,129,0.3)",
-          transition: "transform 0.15s",
-        }}
-          onMouseEnter={e => (e.currentTarget.style.transform = "translateY(-1px)")}
-          onMouseLeave={e => (e.currentTarget.style.transform = "translateY(0)")}
-        >
-          <Download size={17} /> Export CSV
-        </button>
+        <div style={{ display:"flex", alignItems:"center", gap:"10px", flexWrap:"wrap" }}>
+          {/* Monthly download */}
+          <div style={{ position:"relative" }}>
+            <button onClick={() => setShowMonthPicker(p => !p)} style={{
+              display:"flex", alignItems:"center", gap:"8px",
+              padding:"11px 18px", background:"linear-gradient(135deg,#6366f1,#4f46e5)",
+              border:"none", borderRadius:"12px", color:"white",
+              fontSize:"13px", fontWeight:600, cursor:"pointer",
+              boxShadow:"0 4px 15px rgba(99,102,241,0.3)",
+            }}>
+              <Calendar size={15} /> Monthly ↓
+            </button>
+            {showMonthPicker && (
+              <div style={{ position:"absolute", top:"110%", right:0, background:"white", border:"1px solid #e2e8f0", borderRadius:"14px", padding:"16px", boxShadow:"0 12px 40px rgba(0,0,0,0.15)", zIndex:200, minWidth:"220px" }}>
+                <div style={{ fontSize:"12px", fontWeight:700, color:"#94a3b8", marginBottom:"10px", textTransform:"uppercase" }}>Select Month</div>
+                <div style={{ display:"flex", gap:"8px", marginBottom:"12px" }}>
+                  <select value={dlMonth} onChange={e => setDlMonth(Number(e.target.value))}
+                    style={{ flex:1, padding:"8px", border:"1px solid #e2e8f0", borderRadius:"8px", fontSize:"13px", outline:"none" }}>
+                    {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map((m,i)=>(
+                      <option key={i+1} value={i+1}>{m}</option>
+                    ))}
+                  </select>
+                  <input type="number" value={dlYear} onChange={e => setDlYear(Number(e.target.value))}
+                    style={{ width:"72px", padding:"8px", border:"1px solid #e2e8f0", borderRadius:"8px", fontSize:"13px", outline:"none" }} />
+                </div>
+                <button onClick={handleMonthlyDownload} disabled={dlLoading}
+                  style={{ width:"100%", padding:"10px", background:"linear-gradient(135deg,#6366f1,#4f46e5)", color:"white", border:"none", borderRadius:"9px", fontWeight:700, fontSize:"13px", cursor:dlLoading?"wait":"pointer", opacity:dlLoading?0.7:1 }}>
+                  {dlLoading ? "Generating…" : "Download CSV"}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Filtered export */}
+          <button onClick={exportCSV} style={{
+            display:"flex", alignItems:"center", gap:"8px",
+            padding:"11px 20px", background:"linear-gradient(135deg, #10b981, #059669)",
+            border:"none", borderRadius:"12px", color:"white",
+            fontSize:"14px", fontWeight:600, cursor:"pointer",
+            boxShadow:"0 4px 15px rgba(16,185,129,0.3)",
+            transition:"transform 0.15s",
+          }}
+            onMouseEnter={e => (e.currentTarget.style.transform = "translateY(-1px)")}
+            onMouseLeave={e => (e.currentTarget.style.transform = "translateY(0)")}
+          >
+            <Download size={17} /> Export CSV
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
