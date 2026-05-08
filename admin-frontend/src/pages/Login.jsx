@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, LogIn } from "lucide-react";
-import { signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
+import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
 import Logo from "../components/Logo";
 import API from "../services/api";
 
-// Detect mobile browsers
-const isMobile = () => /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
 
 export default function Login() {
   const [email, setEmail]         = useState("");
@@ -22,33 +20,7 @@ export default function Login() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (localStorage.getItem("token")) {
-      navigate("/dashboard");
-      return;
-    }
-
-    // Handle redirect result after mobile Google sign-in
-    const handleRedirectResult = async () => {
-      try {
-        setLoading(true);
-        const result = await getRedirectResult(auth);
-        if (result) {
-          const token = await result.user.getIdToken();
-          const res = await API.post("/auth/google", { token });
-          localStorage.setItem("token", res.data.token);
-          localStorage.setItem("adminName", res.data.user?.name || "Admin");
-          localStorage.setItem("adminPhone", res.data.user?.phone || "");
-          window.location.href = "/dashboard";
-        }
-      } catch (err) {
-        console.error("Redirect result error:", err);
-        setError("Google sign-in failed. Please ensure you are authorized.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    handleRedirectResult();
+    if (localStorage.getItem("token")) navigate("/dashboard");
   }, [navigate]);
 
   const handleLogin = async () => {
@@ -86,20 +58,15 @@ export default function Login() {
     setLoading(true);
     setError("");
     try {
-      if (isMobile()) {
-        // Mobile: use redirect (popups are blocked on mobile browsers)
-        await signInWithRedirect(auth, googleProvider);
-        // Page will reload — result is handled in useEffect above
-      } else {
-        // Desktop: use popup for better UX
-        const result = await signInWithPopup(auth, googleProvider);
-        const token = await result.user.getIdToken();
-        const res = await API.post("/auth/google", { token });
-        localStorage.setItem("token", res.data.token);
-        localStorage.setItem("adminName", res.data.user?.name || "Admin");
-        localStorage.setItem("adminPhone", res.data.user?.phone || "");
-        window.location.href = "/dashboard";
-      }
+      // signInWithPopup works on both desktop and mobile PWA.
+      // signInWithRedirect is broken on Android PWAs due to storage partitioning.
+      const result = await signInWithPopup(auth, googleProvider);
+      const token  = await result.user.getIdToken();
+      const res    = await API.post("/auth/google", { token });
+      localStorage.setItem("token",      res.data.token);
+      localStorage.setItem("adminName",  res.data.user?.name  || "Admin");
+      localStorage.setItem("adminPhone", res.data.user?.phone || "");
+      window.location.href = "/dashboard";
     } catch (err) {
       console.error(err);
       setError("Google sign-in failed. Please ensure you are authorized.");
