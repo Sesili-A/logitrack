@@ -10,17 +10,17 @@ const hdrs = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` }
 const fmtRupee = n => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 const fmtDate  = iso => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 
-function getMonday(d = new Date()) {
+function getWeekStart(d = new Date()) {
   const date = new Date(d);
   const day  = date.getDay();
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  const diff = date.getDate() - day;
   date.setDate(diff); date.setHours(0,0,0,0);
   return date;
 }
 function toYMD(d) { return d.toISOString().split("T")[0]; }
 
 export default function WeeklyPayroll() {
-  const [weekStart, setWeekStart] = useState(getMonday());
+  const [weekStart, setWeekStart] = useState(getWeekStart());
   const [data,      setData]      = useState(null);
   const [loading,   setLoading]   = useState(false);
   const [expanded,  setExpanded]  = useState(null);
@@ -41,7 +41,7 @@ export default function WeeklyPayroll() {
 
   const prevWeek = () => { const d = new Date(weekStart); d.setDate(d.getDate() - 7); setWeekStart(d); };
   const nextWeek = () => { const d = new Date(weekStart); d.setDate(d.getDate() + 7); if (d <= new Date()) setWeekStart(d); };
-  const isCurrentWeek = toYMD(weekStart) === toYMD(getMonday());
+  const isCurrentWeek = toYMD(weekStart) === toYMD(getWeekStart());
 
   const exportCSV = () => {
     if (!data) return;
@@ -232,7 +232,7 @@ export default function WeeklyPayroll() {
             <button onClick={prevWeek} style={{ borderRight: "1px solid #e2e8f0" }}>
               <ChevronLeft size={16} color="#475569" />
             </button>
-            <button onClick={() => setWeekStart(getMonday())}>This Week</button>
+            <button onClick={() => setWeekStart(getWeekStart())}>This Week</button>
             <button onClick={nextWeek} disabled={isCurrentWeek} style={{ borderLeft: "1px solid #e2e8f0", opacity: isCurrentWeek ? 0.4 : 1, cursor: isCurrentWeek ? "not-allowed" : "pointer" }}>
               <ChevronRight size={16} color="#475569" />
             </button>

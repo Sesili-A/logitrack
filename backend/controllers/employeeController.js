@@ -1,10 +1,10 @@
 const Employee = require("../models/Employee");
 
-// Helper — get Monday of a given date
+// Helper — get Sunday of a given date
 function getWeekStart(date) {
   const d = new Date(date);
   const day = d.getDay(); // 0=Sun, 1=Mon ...
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const diff = d.getDate() - day;
   d.setDate(diff);
   d.setHours(0, 0, 0, 0);
   return d;

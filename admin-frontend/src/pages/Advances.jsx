@@ -8,17 +8,17 @@ const fmtRupee = n => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 const fmtDate  = iso => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 const today    = () => new Date().toISOString().split("T")[0];
 
-function getMonday(d = new Date()) {
+function getWeekStart(d = new Date()) {
   const date = new Date(d);
   const day  = date.getDay();
-  date.setDate(date.getDate() - day + (day === 0 ? -6 : 1));
+  date.setDate(date.getDate() - day);
   date.setHours(0, 0, 0, 0);
   return date;
 }
 function weekLabel(d) {
-  const mon = getMonday(new Date(d));
-  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
-  return `${fmtDate(mon)} – ${fmtDate(sun)}`;
+  const start = getWeekStart(new Date(d));
+  const end = new Date(start); end.setDate(start.getDate() + 6);
+  return `${fmtDate(start)} – ${fmtDate(end)}`;
 }
 
 function Toast({ msg, type }) {
@@ -196,8 +196,8 @@ export default function Advances() {
     const map = {};
     filtered.forEach(a => {
       const empId = a.employee?._id || "unknown";
-      const mon   = getMonday(new Date(a.date));
-      const key   = `${empId}__${mon.toISOString().split("T")[0]}`;
+      const start = getWeekStart(new Date(a.date));
+      const key   = `${empId}__${start.toISOString().split("T")[0]}`;
       if (!map[key]) {
         map[key] = {
           key,
@@ -215,8 +215,8 @@ export default function Advances() {
   })();
 
   const totalThisWeek = (() => {
-    const mon = getMonday();
-    return advances.filter(a => new Date(a.date) >= mon).reduce((s, a) => s + a.amount, 0);
+    const start = getWeekStart();
+    return advances.filter(a => new Date(a.date) >= start).reduce((s, a) => s + a.amount, 0);
   })();
   const totalAll = advances.reduce((s, a) => s + a.amount, 0);
 

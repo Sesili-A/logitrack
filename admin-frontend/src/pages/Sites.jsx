@@ -3,10 +3,10 @@ import Layout from "../components/Layout";
 import { MapPin, TrendingUp, Calendar, Users, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-react";
 import API from "../services/api";
 
-function getMonday(d = new Date()) {
+function getWeekStart(d = new Date()) {
   const date = new Date(d);
   const day  = date.getDay();
-  date.setDate(date.getDate() - day + (day === 0 ? -6 : 1));
+  date.setDate(date.getDate() - day);
   date.setHours(0, 0, 0, 0);
   return date;
 }
@@ -21,11 +21,11 @@ function fmtDayLabel(dateStr) {
 export default function Sites() {
   const [siteStats,   setSiteStats]   = useState({});
   const [loading,     setLoading]     = useState(true);
-  const [weekStart,   setWeekStart]   = useState(getMonday());
+  const [weekStart,   setWeekStart]   = useState(getWeekStart());
   const [weekEnd,     setWeekEnd]     = useState(null);
   const [expanded,    setExpanded]    = useState({}); // { siteName: true }
 
-  const isCurrentWeek = toYMD(weekStart) === toYMD(getMonday());
+  const isCurrentWeek = toYMD(weekStart) === toYMD(getWeekStart());
 
   useEffect(() => { fetchPayroll(); }, [weekStart]);
 
@@ -107,7 +107,7 @@ export default function Sites() {
           <button onClick={prevWeek} style={{ borderRight:"1px solid #e2e8f0" }}>
             <ChevronLeft size={16} color="#475569" />
           </button>
-          <button onClick={() => setWeekStart(getMonday())}>This Week</button>
+          <button onClick={() => setWeekStart(getWeekStart())}>This Week</button>
           <button onClick={nextWeek} disabled={isCurrentWeek}
             style={{ borderLeft:"1px solid #e2e8f0", opacity: isCurrentWeek ? 0.4 : 1, cursor: isCurrentWeek ? "not-allowed" : "pointer" }}>
             <ChevronRight size={16} color="#475569" />

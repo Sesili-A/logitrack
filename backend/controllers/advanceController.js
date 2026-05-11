@@ -1,11 +1,11 @@
 const Advance  = require("../models/Advance");
 const Employee = require("../models/Employee");
 
-// Helper — get Monday of a given date's week
+// Helper — get Sunday of a given date's week
 function getWeekStart(date) {
   const d = new Date(date);
   const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const diff = d.getDate() - day;
   d.setDate(diff);
   d.setHours(0, 0, 0, 0);
   return d;
