@@ -176,14 +176,14 @@ export default function Reports() {
   return (
     <Layout>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "28px" }}>
+      <div className="reports-header">
         <div>
           <h1 style={{ fontSize: "24px", fontWeight: 800, color: "#0f172a", marginBottom: "4px" }}>Reports</h1>
           <p style={{ color: "#64748b", fontSize: "14px" }}>
             Attendance analytics &amp; history
           </p>
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:"10px", flexWrap:"wrap" }}>
+        <div className="reports-header-actions">
           {/* Monthly download */}
           <div style={{ position:"relative" }}>
             <button onClick={() => setShowMonthPicker(p => !p)} style={{
@@ -234,33 +234,26 @@ export default function Reports() {
       </div>
 
       {/* Filters */}
-      <div style={{
-        background: "white", borderRadius: "16px", padding: "20px 24px",
-        boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9",
-        marginBottom: "24px",
-        display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap",
-      }}>
-        <Filter size={16} color="#94a3b8" />
-
+      <div className="reports-filters-box">
         {/* From date */}
-        <div>
-          <label style={{ fontSize: "11px", fontWeight: 600, color: "#94a3b8", display: "block", marginBottom: "4px", textTransform: "uppercase" }}>From</label>
+        <div className="filter-item">
+          <label>From</label>
           <input type="date" value={filters.from} max={filters.to}
             onChange={e => setF("from", e.target.value)} style={inputStyle} />
         </div>
 
         {/* To date */}
-        <div>
-          <label style={{ fontSize: "11px", fontWeight: 600, color: "#94a3b8", display: "block", marginBottom: "4px", textTransform: "uppercase" }}>To</label>
+        <div className="filter-item">
+          <label>To</label>
           <input type="date" value={filters.to} min={filters.from}
             onChange={e => setF("to", e.target.value)} style={inputStyle} />
         </div>
 
         {/* Employee */}
-        <div>
-          <label style={{ fontSize: "11px", fontWeight: 600, color: "#94a3b8", display: "block", marginBottom: "4px", textTransform: "uppercase" }}>Employee</label>
-          <div style={selectWrap}>
-            <select value={filters.employeeId} onChange={e => setF("employeeId", e.target.value)} style={selectStyle}>
+        <div className="filter-item">
+          <label>Employee</label>
+          <div style={{ ...selectWrap, width: "100%" }}>
+            <select value={filters.employeeId} onChange={e => setF("employeeId", e.target.value)} style={{ ...selectStyle, width: "100%" }}>
               <option value="all">All Employees</option>
               {employees.map(e => <option key={e._id} value={e._id}>{e.name}</option>)}
             </select>
@@ -269,10 +262,10 @@ export default function Reports() {
         </div>
 
         {/* Status */}
-        <div>
-          <label style={{ fontSize: "11px", fontWeight: 600, color: "#94a3b8", display: "block", marginBottom: "4px", textTransform: "uppercase" }}>Status</label>
-          <div style={selectWrap}>
-            <select value={filters.status} onChange={e => setF("status", e.target.value)} style={selectStyle}>
+        <div className="filter-item">
+          <label>Status</label>
+          <div style={{ ...selectWrap, width: "100%" }}>
+            <select value={filters.status} onChange={e => setF("status", e.target.value)} style={{ ...selectStyle, width: "100%" }}>
               {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s === "all" ? "All Statuses" : s}</option>)}
             </select>
             <ChevronDown size={14} color="#94a3b8" style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
@@ -280,7 +273,7 @@ export default function Reports() {
         </div>
 
         {/* Quick ranges */}
-        <div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
+        <div className="quick-ranges">
           {[
             { label: "Today",     from: today(),       to: today() },
             { label: "This Week", from: (() => { const d = new Date(); d.setDate(d.getDate() - d.getDay()); return d.toISOString().split("T")[0]; })(), to: today() },
@@ -304,7 +297,7 @@ export default function Reports() {
 
       {/* Summary stat tiles */}
       {summary.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" }}>
+        <div className="reports-stats-grid">
           {[
             { icon: Users,     label: "Total Records",   value: total,                                          color: "#6366f1", bg: "rgba(99,102,241,0.1)" },
             { icon: UserCheck, label: "Total Present",   value: summary.reduce((a, s) => a + s.Present, 0),     color: "#10b981", bg: "rgba(16,185,129,0.1)" },
@@ -366,7 +359,7 @@ export default function Reports() {
         boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", overflow: "hidden",
       }}>
         {/* Tab bar */}
-        <div style={{ display: "flex", borderBottom: "1px solid #f1f5f9" }}>
+        <div className="tabs-header">
           {[
             { key: "records", label: `Records (${total})`, icon: Calendar },
             { key: "summary", label: `Per-Employee Summary (${summary.length})`, icon: BarChart2 },
@@ -374,24 +367,14 @@ export default function Reports() {
             const Icon = t.icon;
             const active = activeTab === t.key;
             return (
-              <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
-                display: "flex", alignItems: "center", gap: "8px",
-                padding: "14px 24px", border: "none", cursor: "pointer",
-                background: "transparent", fontSize: "14px", fontWeight: active ? 600 : 400,
-                color: active ? "#6366f1" : "#64748b",
-                borderBottom: active ? "2px solid #6366f1" : "2px solid transparent",
-                transition: "all 0.2s",
-              }}>
+              <button key={t.key} onClick={() => setActiveTab(t.key)} className={`tab-btn ${active ? "active" : ""}`}>
                 <Icon size={15} /> {t.label}
               </button>
             );
           })}
 
           {activeTab === "summary" && (
-            <div style={{
-              marginLeft: "auto", padding: "10px 20px",
-              display: "flex", alignItems: "center", gap: "10px",
-            }}>
+            <div className="summary-search">
               <Search size={14} color="#94a3b8" />
               <input placeholder="Search employee…" value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -404,8 +387,8 @@ export default function Reports() {
         {/* Records tab */}
         {activeTab === "records" && (
           <>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="mobile-table-wrap">
+              <table className="desktop-table">
                 <thead>
                   <tr style={{ background: "#f8fafc" }}>
                     {["Employee", "Department", "Date", "Status"].map(h => (
@@ -470,6 +453,61 @@ export default function Reports() {
               </table>
             </div>
 
+            {/* Mobile Cards for Records */}
+            <div className="mobile-cards">
+              {loading ? (
+                <div style={{ textAlign: "center", padding: "48px", color: "#94a3b8", fontSize: "14px" }}>Loading…</div>
+              ) : records.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "60px", color: "#94a3b8", fontSize: "14px" }}>
+                  <BarChart2 size={36} style={{ margin: "0 auto 12px", opacity: 0.3 }} />
+                  <p style={{ fontWeight: 600 }}>No records found</p>
+                  <p style={{ fontSize: "13px", marginTop: "4px" }}>Try adjusting your filters.</p>
+                </div>
+              ) : records.map((r, i) => {
+                const cfg = statusCfg[r.status] || statusCfg.Present;
+                const avatarColors = ["#6366f1","#10b981","#f59e0b","#ef4444","#8b5cf6","#06b6d4","#ec4899"];
+                const ac = avatarColors[(r.name?.charCodeAt(0) || 0) % avatarColors.length];
+                return (
+                  <div className="report-card" key={r._id || i}>
+                    <div className="report-card-header">
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <div style={{
+                          width: "36px", height: "36px", borderRadius: "50%",
+                          background: ac, display: "flex", alignItems: "center",
+                          justifyContent: "center", color: "white",
+                          fontWeight: 700, fontSize: "12px", flexShrink: 0,
+                        }}>
+                          {r.name?.[0] || "?"}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: "14px", color: "#0f172a" }}>{r.name}</div>
+                          <div style={{ fontSize: "12px", color: "#94a3b8" }}>{r.email}</div>
+                        </div>
+                      </div>
+                      <span style={{
+                        display: "inline-flex", alignItems: "center", gap: "4px",
+                        padding: "4px 8px", borderRadius: "20px", fontSize: "11px", fontWeight: 600,
+                        background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`,
+                      }}>
+                        <div style={{ width: "4px", height: "4px", borderRadius: "50%", background: cfg.color }} />
+                        {r.status}
+                      </span>
+                    </div>
+                    <div className="report-card-body">
+                      <div className="report-card-row">
+                        <span>Date</span>
+                        <strong>{fmt(r.date)}</strong>
+                      </div>
+                      <div className="report-card-row">
+                        <span>Department</span>
+                        <strong>{r.department}</strong>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
             {/* Pagination */}
             {pages > 1 && (
               <div style={{
@@ -514,8 +552,9 @@ export default function Reports() {
 
         {/* Summary tab */}
         {activeTab === "summary" && (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <>
+          <div className="mobile-table-wrap">
+            <table className="desktop-table">
               <thead>
                 <tr style={{ background: "#f8fafc" }}>
                   {["Employee", "Department", "Present", "Absent", "Late", "Leave", "Total", "Attend Rate"].map(h => (
@@ -578,6 +617,49 @@ export default function Reports() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Cards for Summary */}
+          <div className="mobile-cards">
+            {loading ? (
+              <div style={{ textAlign: "center", padding: "48px", color: "#94a3b8", fontSize: "14px" }}>Loading…</div>
+            ) : filteredSummary.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "60px", color: "#94a3b8", fontSize: "14px" }}>No data for selected filters.</div>
+            ) : filteredSummary.map(s => (
+              <div className="report-card" key={s.id}>
+                <div className="report-card-header">
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: "14px", color: "#0f172a" }}>{s.name}</div>
+                    <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>{s.department}</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "2px" }}>Rate</div>
+                    <div style={{ fontSize: "14px", fontWeight: 700, color: s.rate >= 80 ? "#059669" : s.rate >= 60 ? "#d97706" : "#dc2626" }}>
+                      {s.rate}%
+                    </div>
+                  </div>
+                </div>
+                <div className="report-card-body">
+                  <div className="report-card-row">
+                    <span>Present</span>
+                    <strong style={{ color: "#059669" }}>{s.Present}</strong>
+                  </div>
+                  <div className="report-card-row">
+                    <span>Absent</span>
+                    <strong style={{ color: "#dc2626" }}>{s.Absent}</strong>
+                  </div>
+                  <div className="report-card-row">
+                    <span>Late / Leave</span>
+                    <strong><span style={{color:"#d97706"}}>{s.Late}</span> / <span style={{color:"#4f46e5"}}>{s.Leave}</span></strong>
+                  </div>
+                  <div className="report-card-row">
+                    <span>Total Days</span>
+                    <strong>{s.total}</strong>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </div>
     </Layout>
