@@ -10,7 +10,6 @@ const STATUS_OPTIONS = [
   { value: "Half-Day", label: "½ Day",    color: "#d97706", bg: "rgba(245,158,11,0.12)",  border: "rgba(245,158,11,0.3)",  icon: Clock },
   { value: "Absent",   label: "Absent",   color: "#dc2626", bg: "rgba(239,68,68,0.12)",   border: "rgba(239,68,68,0.3)",   icon: XCircle },
   { value: "Overtime", label: "OT",       color: "#e07a67", bg: "rgba(245,143,124,0.12)", border: "rgba(245,143,124,0.3)", icon: Clock },
-  { value: "Holiday",  label: "Holiday",  color: "#3b82f6", bg: "rgba(59,130,246,0.12)",  border: "rgba(59,130,246,0.3)",  icon: Calendar },
 ];
 
 const cfg = s => STATUS_OPTIONS.find(o => o.value === s) || { value: "", label: "Not Marked", color: "#64748b", bg: "rgba(148, 163, 184, 0.12)", border: "rgba(148, 163, 184, 0.3)", icon: AlertCircle };
@@ -69,7 +68,12 @@ export default function Attendance() {
       const init = {};
       const isSun = new Date(date).getDay() === 0;
       empRes.data.forEach(emp => {
-        init[emp._id] = dbRecords[emp._id] || { status: isSun ? "Holiday" : "", site: defaultSite, overtimeHours: 0 };
+        let dbRec = dbRecords[emp._id];
+        let dbStatus = dbRec ? dbRec.status : "";
+        if (isSun && dbStatus !== "Overtime") dbStatus = "";
+        init[emp._id] = dbRec 
+          ? { ...dbRec, status: dbStatus } 
+          : { status: "", site: defaultSite, overtimeHours: 0 };
       });
       setRecords(init);
     } catch { showToast("Failed to load data", "error"); }
@@ -114,13 +118,14 @@ export default function Attendance() {
   const submitAttendance = async () => {
     setSubmitting(true);
     try {
+      const isSun = new Date(date).getDay() === 0;
       const recordsArr = employees.map(emp => {
         const r  = records[emp._id] || {};
-        const st = r.status || (new Date(date).getDay() === 0 ? "Holiday" : "Present");
+        const st = r.status || (isSun ? "" : "Present");
         const si = r.site   || null;
         const oh = st === "Overtime" ? (Number(r.overtimeHours) || 0) : 0;
-        return { employeeId: emp._id, status: st, site: (st !== "Absent" && st !== "Holiday") ? si : null, overtimeHours: oh };
-      });
+        return { employeeId: emp._id, status: st, site: (st !== "" && st !== "Absent") ? si : null, overtimeHours: oh };
+      }).filter(r => r.status !== "");
       await API.post("/attendance/mark", { records: recordsArr, date }, { headers: hdrs() });
       setSubmitted(true);
       setAlreadyMarked(true);
@@ -155,9 +160,9 @@ export default function Attendance() {
   }, 0);
 
   const isSunday = new Date(date).getDay() === 0;
-  const visibleOptions = STATUS_OPTIONS.filter(o => 
-    isSunday ? (o.value === "Holiday" || o.value === "Overtime") : (o.value !== "Holiday")
-  );
+  const visibleOptions = isSunday 
+    ? STATUS_OPTIONS.filter(o => o.value === "Overtime")
+    : STATUS_OPTIONS;
 
   return (
     <Layout>
@@ -388,7 +393,7 @@ export default function Attendance() {
           const overtimeHours = rec.overtimeHours || 0;
           const c            = cfg(status);
           const dayPay       = calcDayPay(status, overtimeHours, emp.dailyWage);
-          const needsSite    = status !== "Absent" && status !== "Holiday";
+          const needsSite    = status !== "" && status !== "Absent";
 
           return (
             <div key={emp._id} className="att-card" style={{ borderLeft: `3px solid ${c.color}` }}>
@@ -473,12 +478,12 @@ export default function Attendance() {
                 </td></tr>
               ) : employees.map((emp) => {
                 const rRaw        = records[emp._id] || {};
-                const status      = typeof rRaw === "string" ? rRaw : (rRaw?.status || (isSunday ? "Holiday" : "Present"));
+                const status      = typeof rRaw === "string" ? rRaw : (rRaw?.status || (isSunday ? "" : "Present"));
                 const recSite     = typeof rRaw === "string" ? "" : (rRaw?.site || "");
                 const overtimeHours = typeof rRaw === "string" ? 0 : (rRaw?.overtimeHours || 0);
                 const c           = cfg(status);
                 const dayPay      = calcDayPay(status, overtimeHours, emp.dailyWage);
-                const needsSite   = status !== "Absent" && status !== "Holiday";
+                const needsSite   = status !== "" && status !== "Absent";
 
                 return (
                   <tr key={emp._id} style={{ borderTop: "1px solid #f1f5f9" }}>
