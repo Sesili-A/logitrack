@@ -6,7 +6,13 @@ import { Wallet, Plus, Trash2, X, Check, ChevronDown, ChevronUp } from "lucide-r
 const hdrs = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 const fmtRupee = n => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 const fmtDate  = iso => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-const today    = () => new Date().toISOString().split("T")[0];
+const toYMD = (d) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+const today = () => toYMD(new Date());
 
 function getWeekStart(d = new Date()) {
   const date = new Date(d);
@@ -197,7 +203,7 @@ export default function Advances() {
     filtered.forEach(a => {
       const empId = a.employee?._id || "unknown";
       const start = getWeekStart(new Date(a.date));
-      const key   = `${empId}__${start.toISOString().split("T")[0]}`;
+      const key   = `${empId}__${toYMD(start)}`;
       if (!map[key]) {
         map[key] = {
           key,

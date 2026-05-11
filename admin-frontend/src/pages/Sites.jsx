@@ -10,7 +10,12 @@ function getWeekStart(d = new Date()) {
   date.setHours(0, 0, 0, 0);
   return date;
 }
-function toYMD(d) { return d.toISOString().split("T")[0]; }
+function toYMD(d) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 function fmtDate(d) {
   return new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }

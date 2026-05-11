@@ -25,8 +25,14 @@ const statusCfg = {
 };
 
 const fmt = iso => new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
-const today = () => new Date().toISOString().split("T")[0];
-const monthStart = () => { const d = new Date(); d.setDate(1); return d.toISOString().split("T")[0]; };
+const toYMD = (d) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+const today = () => toYMD(new Date());
+const monthStart = () => { const d = new Date(); d.setDate(1); return toYMD(d); };
 
 // ── Monthly CSV download ──────────────────────────────────────────────────────
 async function downloadMonthlyCSV(year, month) {
@@ -277,7 +283,7 @@ export default function Reports() {
         <div className="quick-ranges">
           {[
             { label: "Today",     from: today(),       to: today() },
-            { label: "This Week", from: (() => { const d = new Date(); d.setDate(d.getDate() - d.getDay()); return d.toISOString().split("T")[0]; })(), to: today() },
+            { label: "This Week", from: (() => { const d = new Date(); d.setDate(d.getDate() - d.getDay()); return toYMD(d); })(), to: today() },
             { label: "This Month", from: monthStart(), to: today() },
           ].map(q => (
             <button key={q.label}

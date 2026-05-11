@@ -15,7 +15,13 @@ const STATUS_OPTIONS = [
 
 const cfg = s => STATUS_OPTIONS.find(o => o.value === s) || { value: "", label: "Not Marked", color: "#64748b", bg: "rgba(148, 163, 184, 0.12)", border: "rgba(148, 163, 184, 0.3)", icon: AlertCircle };
 const fmtRupee = n => `₹${Number(n || 0).toLocaleString("en-IN")}`;
-const today = () => new Date().toISOString().split("T")[0];
+const toYMD = (d) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+const today = () => toYMD(new Date());
 
 function Toast({ msg, type }) {
   return (

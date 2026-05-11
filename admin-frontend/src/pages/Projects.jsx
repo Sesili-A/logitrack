@@ -9,7 +9,13 @@ import {
 const hdrs     = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 const fmtRupee = n  => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 const fmtDate  = d  => d ? new Date(d).toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" }) : "Ongoing";
-const todayStr = () => new Date().toISOString().split("T")[0];
+const toYMD = (d) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+const todayStr = () => toYMD(new Date());
 
 const STATUS_COLORS = {
   active:    { color:"#059669", bg:"rgba(16,185,129,0.1)"  },
