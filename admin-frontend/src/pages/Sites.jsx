@@ -239,7 +239,7 @@ export default function Sites() {
                                   </div>
                                   <div style={{ display:"flex", gap:"4px", flexWrap:"wrap" }}>
                                     {statuses["Present"] > 0 && <span style={{ fontSize:"10px", padding:"2px 6px", background:"rgba(16,185,129,0.1)", color:"#059669", borderRadius:"4px", fontWeight:600 }}>{statuses["Present"]}P</span>}
-                                    {statuses["Half-Day"] > 0 && <span style={{ fontSize:"10px", padding:"2px 6px", background:"rgba(245,158,11,0.1)", color:"#d97706", borderRadius:"4px", fontWeight:600 }}>{statuses["Half-Day"]}½</span>}
+                                    {statuses["Half-Day"] > 0 && <span style={{ fontSize:"10px", padding:"2px 6px", background:"rgba(245,158,11,0.1)", color:"#d97706", borderRadius:"4px", fontWeight:600 }}>{statuses["Half-Day"] === 1 ? "½" : statuses["Half-Day"] + " (½)"}</span>}
                                     {statuses["Overtime"] > 0 && <span style={{ fontSize:"10px", padding:"2px 6px", background:"rgba(245,143,124,0.15)", color:"#e07a67", borderRadius:"4px", fontWeight:600 }}>{statuses["Overtime"]}OT</span>}
                                   </div>
                                 </div>
