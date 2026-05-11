@@ -9,7 +9,8 @@ const STATUS_OPTIONS = [
   { value: "Present",  label: "Present",  color: "#059669", bg: "rgba(16,185,129,0.12)",  border: "rgba(16,185,129,0.3)",  icon: CheckCircle },
   { value: "Half-Day", label: "½ Day",    color: "#d97706", bg: "rgba(245,158,11,0.12)",  border: "rgba(245,158,11,0.3)",  icon: Clock },
   { value: "Absent",   label: "Absent",   color: "#dc2626", bg: "rgba(239,68,68,0.12)",   border: "rgba(239,68,68,0.3)",   icon: XCircle },
-  { value: "Overtime", label: "OT",       color: "#e07a67", bg: "rgba(245,143,124,0.12)",  border: "rgba(245,143,124,0.3)",  icon: Clock },
+  { value: "Overtime", label: "OT",       color: "#e07a67", bg: "rgba(245,143,124,0.12)", border: "rgba(245,143,124,0.3)", icon: Clock },
+  { value: "Holiday",  label: "Holiday",  color: "#3b82f6", bg: "rgba(59,130,246,0.12)",  border: "rgba(59,130,246,0.3)",  icon: Calendar },
 ];
 
 const cfg = s => STATUS_OPTIONS.find(o => o.value === s) || { value: "", label: "Not Marked", color: "#64748b", bg: "rgba(148, 163, 184, 0.12)", border: "rgba(148, 163, 184, 0.3)", icon: AlertCircle };
@@ -60,8 +61,9 @@ export default function Attendance() {
       setAlreadyMarked(Object.keys(dbRecords).length > 0);
       const defaultSite = siteRes.data.length > 0 ? siteRes.data[0].name : "";
       const init = {};
+      const isSun = new Date(date).getDay() === 0;
       empRes.data.forEach(emp => {
-        init[emp._id] = dbRecords[emp._id] || { status: "", site: defaultSite, overtimeHours: 0 };
+        init[emp._id] = dbRecords[emp._id] || { status: isSun ? "Holiday" : "", site: defaultSite, overtimeHours: 0 };
       });
       setRecords(init);
     } catch { showToast("Failed to load data", "error"); }
@@ -108,10 +110,10 @@ export default function Attendance() {
     try {
       const recordsArr = employees.map(emp => {
         const r  = records[emp._id] || {};
-        const st = r.status || "Present";
+        const st = r.status || (new Date(date).getDay() === 0 ? "Holiday" : "Present");
         const si = r.site   || null;
         const oh = st === "Overtime" ? (Number(r.overtimeHours) || 0) : 0;
-        return { employeeId: emp._id, status: st, site: st !== "Absent" ? si : null, overtimeHours: oh };
+        return { employeeId: emp._id, status: st, site: (st !== "Absent" && st !== "Holiday") ? si : null, overtimeHours: oh };
       });
       await API.post("/attendance/mark", { records: recordsArr, date }, { headers: hdrs() });
       setSubmitted(true);
@@ -145,6 +147,11 @@ export default function Attendance() {
     const oh = typeof r === "string" ? 0 : (r?.overtimeHours || 0);
     return sum + calcDayPay(st, oh, emp.dailyWage);
   }, 0);
+
+  const isSunday = new Date(date).getDay() === 0;
+  const visibleOptions = STATUS_OPTIONS.filter(o => 
+    isSunday ? (o.value === "Holiday" || o.value === "Overtime") : (o.value !== "Holiday")
+  );
 
   return (
     <Layout>
@@ -350,7 +357,7 @@ export default function Attendance() {
       {/* ── Mark all bar ── */}
       <div className="att-markall">
         <span style={{ fontSize: "12px", color: "#94a3b8" }}>Mark all:</span>
-        {STATUS_OPTIONS.map(s => (
+        {visibleOptions.map(s => (
           <button key={s.value} onClick={() => markAll(s.value)} style={{
             padding: "6px 14px", background: s.bg, border: `1px solid ${s.border}`,
             borderRadius: "20px", fontSize: "12px", color: s.color, fontWeight: 600, cursor: "pointer"
@@ -375,7 +382,7 @@ export default function Attendance() {
           const overtimeHours = rec.overtimeHours || 0;
           const c            = cfg(status);
           const dayPay       = calcDayPay(status, overtimeHours, emp.dailyWage);
-          const needsSite    = status !== "Absent";
+          const needsSite    = status !== "Absent" && status !== "Holiday";
 
           return (
             <div key={emp._id} className="att-card" style={{ borderLeft: `3px solid ${c.color}` }}>
@@ -398,8 +405,8 @@ export default function Attendance() {
               </div>
 
               {/* Status buttons */}
-              <div className="att-status-btns">
-                {STATUS_OPTIONS.map(opt => (
+              <div className="att-status-btns" style={{ gridTemplateColumns: `repeat(${visibleOptions.length}, 1fr)` }}>
+                {visibleOptions.map(opt => (
                   <button key={opt.value} onClick={() => setStatus(emp._id, opt.value)} className="att-status-btn"
                     style={{
                       background: status === opt.value ? opt.bg : "transparent",
@@ -460,12 +467,12 @@ export default function Attendance() {
                 </td></tr>
               ) : employees.map((emp) => {
                 const rRaw        = records[emp._id] || {};
-                const status      = typeof rRaw === "string" ? rRaw : (rRaw?.status || "Present");
+                const status      = typeof rRaw === "string" ? rRaw : (rRaw?.status || (isSunday ? "Holiday" : "Present"));
                 const recSite     = typeof rRaw === "string" ? "" : (rRaw?.site || "");
                 const overtimeHours = typeof rRaw === "string" ? 0 : (rRaw?.overtimeHours || 0);
                 const c           = cfg(status);
                 const dayPay      = calcDayPay(status, overtimeHours, emp.dailyWage);
-                const needsSite   = status !== "Absent";
+                const needsSite   = status !== "Absent" && status !== "Holiday";
 
                 return (
                   <tr key={emp._id} style={{ borderTop: "1px solid #f1f5f9" }}>
@@ -483,7 +490,7 @@ export default function Attendance() {
                     <td style={{ padding: "14px 20px" }}><span style={{ fontSize: "13px", fontWeight: 600, color: "#059669" }}>{fmtRupee(emp.dailyWage)}/day</span></td>
                     <td style={{ padding: "14px 20px" }}>
                       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
-                        {STATUS_OPTIONS.map(opt => (
+                        {visibleOptions.map(opt => (
                           <button key={opt.value} onClick={() => setStatus(emp._id, opt.value)}
                             style={{ padding: "5px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: 600, cursor: "pointer", background: status === opt.value ? opt.bg : "transparent", color: status === opt.value ? opt.color : "#94a3b8", border: `1px solid ${status === opt.value ? opt.border : "#e2e8f0"}` }}>
                             {opt.label}

@@ -14,13 +14,14 @@ import {
 const token  = () => localStorage.getItem("token");
 const hdrs   = () => ({ Authorization: `Bearer ${token()}` });
 
-const STATUS_OPTIONS = ["all", "Present", "Absent", "Late", "Leave"];
+const STATUS_OPTIONS = ["all", "Present", "Absent", "Half-Day", "Overtime", "Holiday"];
 
 const statusCfg = {
-  Present: { bg: "rgba(16,185,129,0.1)",  color: "#059669", border: "rgba(16,185,129,0.3)" },
-  Absent:  { bg: "rgba(239,68,68,0.1)",   color: "#dc2626", border: "rgba(239,68,68,0.3)" },
-  Late:    { bg: "rgba(245,158,11,0.1)",  color: "#d97706", border: "rgba(245,158,11,0.3)" },
-  Leave:   { bg: "rgba(99,102,241,0.1)",  color: "#4f46e5", border: "rgba(99,102,241,0.3)" },
+  Present:    { bg: "rgba(16,185,129,0.1)",  color: "#059669", border: "rgba(16,185,129,0.3)" },
+  Absent:     { bg: "rgba(239,68,68,0.1)",   color: "#dc2626", border: "rgba(239,68,68,0.3)" },
+  "Half-Day": { bg: "rgba(245,158,11,0.1)",  color: "#d97706", border: "rgba(245,158,11,0.3)" },
+  Overtime:   { bg: "rgba(245,143,124,0.1)", color: "#e07a67", border: "rgba(245,143,124,0.3)" },
+  Holiday:    { bg: "rgba(59,130,246,0.1)",  color: "#3b82f6", border: "rgba(59,130,246,0.3)" },
 };
 
 const fmt = iso => new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
@@ -34,7 +35,7 @@ async function downloadMonthlyCSV(year, month) {
   const { allDays, report } = res.data;
 
   // Status abbreviations
-  const abbr = s => s === "Present" ? "P" : s === "Half-Day" ? "H" : s === "Overtime" ? "OT" : s === "Absent" ? "A" : "—";
+  const abbr = s => s === "Present" ? "P" : s === "Half-Day" ? "H" : s === "Overtime" ? "OT" : s === "Holiday" ? "Hol" : s === "Absent" ? "A" : "—";
 
   const header = ["Name", "Phone", "Daily Wage", ...allDays.map(d => d.slice(8)), // day numbers
     "Present", "Half-Day", "Overtime", "Absent", "Gross Pay (₹)"];

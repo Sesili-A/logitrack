@@ -9,7 +9,7 @@ const attendanceSchema = new mongoose.Schema({
   date:   { type: Date, required: true },
   status: {
     type: String,
-    enum: ["Present", "Absent", "Half-Day", "Overtime"],
+    enum: ["Present", "Absent", "Half-Day", "Overtime", "Holiday"],
     required: true,
   },
   // Site where the worker was deployed that day
