@@ -4,12 +4,13 @@ import Login         from "./pages/Login";
 import Dashboard     from "./pages/Dashboard";
 import Attendance    from "./pages/Attendance";
 import Employees     from "./pages/Employees";
-import Advances      from "./pages/Advances";
-import WeeklyPayroll from "./pages/WeeklyPayroll";
-import Settings      from "./pages/Settings";
 import Sites         from "./pages/Sites";
 import Projects      from "./pages/Projects";
+import Advances      from "./pages/Advances";
+import WeeklyPayroll from "./pages/WeeklyPayroll";
 import Reports       from "./pages/Reports";
+import Settings      from "./pages/Settings";
+import Contractors   from "./pages/Contractors";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
         <Route path="/payroll"    element={<WeeklyPayroll />} />
         <Route path="/reports"    element={<Reports />} />
         <Route path="/settings"   element={<Settings />} />
+        <Route path="/contractors" element={<Contractors />} />
       </Routes>
     </BrowserRouter>
   );

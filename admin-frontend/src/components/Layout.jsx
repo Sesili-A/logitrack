@@ -4,7 +4,8 @@ import Logo from "./Logo";
 import {
   PieChart, Users, CalendarCheck,
   Calculator, Banknote, Sliders, LogOut,
-  Bell, Search, ChevronRight, X, Menu, Download, MapPin, FolderOpen, BarChart2
+  Bell, Search, ChevronRight, X, Menu, Download, MapPin, FolderOpen, BarChart2,
+  Briefcase
 } from "lucide-react";
 import API from "../services/api";
 
@@ -12,6 +13,7 @@ const navItems = [
   { label: "Dashboard",      icon: PieChart,      path: "/dashboard" },
   { label: "Attendance",     icon: CalendarCheck, path: "/attendance" },
   { label: "Workers",        icon: Users,         path: "/employees" },
+  { label: "Contractors",    icon: Briefcase,     path: "/contractors" },
   { label: "Sites",          icon: MapPin,        path: "/sites" },
   { label: "Projects",       icon: FolderOpen,    path: "/projects" },
   { label: "Advances",       icon: Banknote,      path: "/advances" },
