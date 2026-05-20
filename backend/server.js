@@ -22,6 +22,8 @@ app.use("/api/sites",      require("./routes/siteRoutes"));
 app.use("/api/projects",   require("./routes/projectRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/contractors", require("./routes/contractorRoutes"));
+app.use("/api/worker-categories", require("./routes/workerCategoryRoutes"));
+app.use("/api/contractor-attendance", require("./routes/contractorAttendanceRoutes"));
 
 connectDB().then(async () => {
   try {

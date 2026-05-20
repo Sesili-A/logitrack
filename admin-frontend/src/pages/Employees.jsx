@@ -3,7 +3,7 @@ import Layout from "../components/Layout";
 import API from "../services/api";
 import {
   UserPlus, Pencil, Trash2, Search, X, Check,
-  Users, IndianRupee, Phone,
+  Users, IndianRupee, Phone, Layers, Plus,
 } from "lucide-react";
 
 const hdrs = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -35,8 +35,31 @@ function Modal({ title, onClose, children }) {
   );
 }
 
-function EmployeeForm({ initial, onSubmit, loading }) {
-  const [form, setForm] = useState({ name: "", phone: "", dailyWage: "", ...initial });
+const categoryColors = {
+  Mason: { bg: "rgba(99,102,241,0.1)", text: "#6366f1" },
+  Laborer: { bg: "rgba(16,185,129,0.1)", text: "#10b981" },
+  Helper: { bg: "rgba(245,158,11,0.1)", text: "#d97706" },
+  Painter: { bg: "rgba(236,72,153,0.1)", text: "#ec4899" },
+  Carpenter: { bg: "rgba(139,92,246,0.1)", text: "#8b5cf6" },
+};
+
+const getCategoryStyle = (cat) => {
+  if (!cat) return null;
+  if (categoryColors[cat]) return categoryColors[cat];
+  const hash = cat.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const colors = [
+    { bg: "rgba(99,102,241,0.1)", text: "#6366f1" },
+    { bg: "rgba(16,185,129,0.1)", text: "#10b981" },
+    { bg: "rgba(245,158,11,0.1)", text: "#d97706" },
+    { bg: "rgba(236,72,153,0.1)", text: "#ec4899" },
+    { bg: "rgba(139,92,246,0.1)", text: "#8b5cf6" },
+    { bg: "rgba(6,182,212,0.1)", text: "#06b6d4" },
+  ];
+  return colors[hash % colors.length];
+};
+
+function EmployeeForm({ initial, onSubmit, loading, categories }) {
+  const [form, setForm] = useState({ name: "", phone: "", dailyWage: "", category: "", ...initial });
   const field = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const inp = { width: "100%", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", fontSize: "14px", color: "#0f172a", outline: "none", fontFamily: "inherit" };
   const lbl = { display: "block", fontSize: "11px", fontWeight: 700, color: "#64748b", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" };
@@ -59,6 +82,16 @@ function EmployeeForm({ initial, onSubmit, loading }) {
             onFocus={e => (e.target.style.borderColor = "#6366f1")}
             onBlur={e  => (e.target.style.borderColor = "#e2e8f0")} />
         </div>
+      </div>
+      <div style={{ marginBottom: "16px" }}>
+        <label style={lbl}>Worker Category</label>
+        <select style={{ ...inp, background: "white" }} value={form.category || ""}
+          onChange={e => field("category", e.target.value)}>
+          <option value="">Select category (optional)...</option>
+          {categories.map(c => (
+            <option key={c._id} value={c.name}>{c.name}</option>
+          ))}
+        </select>
       </div>
       <div style={{ marginBottom: "22px" }}>
         <label style={lbl}>Phone <span style={{ fontWeight: 400, textTransform: "none", color: "#94a3b8" }}>(optional)</span></label>
@@ -99,12 +132,16 @@ function Toast({ msg, type }) {
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [search,    setSearch]    = useState("");
   const [modal,     setModal]     = useState(null);
   const [selected,  setSelected]  = useState(null);
   const [saving,    setSaving]    = useState(false);
   const [toast,     setToast]     = useState(null);
   const [confirmId, setConfirmId] = useState(null);
+
+  const [newCatName, setNewCatName] = useState("");
+  const [savingCat,  setSavingCat]  = useState(false);
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type }); setTimeout(() => setToast(null), 3000);
@@ -117,7 +154,45 @@ export default function Employees() {
     } catch { showToast("Failed to load workers", "error"); }
   }, []);
 
-  useEffect(() => { fetchEmployees(); }, [fetchEmployees]);
+  const fetchCategories = useCallback(async () => {
+    try {
+      const res = await API.get("/worker-categories", { headers: hdrs() });
+      setCategories(res.data);
+    } catch {}
+  }, []);
+
+  useEffect(() => { 
+    fetchEmployees(); 
+    fetchCategories();
+  }, [fetchEmployees, fetchCategories]);
+
+  const handleAddCategory = async (e) => {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+    setSavingCat(true);
+    try {
+      await API.post("/worker-categories", { name: newCatName.trim() }, { headers: hdrs() });
+      setNewCatName("");
+      showToast("Category added");
+      fetchCategories();
+    } catch (err) {
+      showToast(err.response?.data?.msg || "Failed to add category", "error");
+    } finally {
+      setSavingCat(false);
+    }
+  };
+
+  const handleDeleteCategory = async (id) => {
+    if (!window.confirm("Delete this category? Any worker matching this category will be reset to unassigned.")) return;
+    try {
+      await API.delete(`/worker-categories/${id}`, { headers: hdrs() });
+      showToast("Category deleted");
+      fetchCategories();
+      fetchEmployees();
+    } catch {
+      showToast("Failed to delete category", "error");
+    }
+  };
 
   const handleAdd = async (form) => {
     setSaving(true);
@@ -191,20 +266,31 @@ export default function Employees() {
       `}</style>
 
       {/* ── Header ── */}
-      <div className="emp-header">
+      <div className="emp-header" style={{ flexWrap: "wrap" }}>
         <div>
           <h1 style={{ fontSize: "22px", fontWeight: 800, color: "#0f172a", marginBottom: "3px" }}>Workers</h1>
           <p style={{ color: "#64748b", fontSize: "13px" }}>{employees.length} registered worker{employees.length !== 1 ? "s" : ""}</p>
         </div>
-        <button onClick={() => setModal("add")} style={{
-          display: "flex", alignItems: "center", gap: "8px",
-          padding: "10px 18px", background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-          border: "none", borderRadius: "11px", color: "white",
-          fontSize: "13px", fontWeight: 600, cursor: "pointer",
-          boxShadow: "0 4px 15px rgba(99,102,241,0.3)", flexShrink: 0,
-        }}>
-          <UserPlus size={16} /> <span>Add Worker</span>
-        </button>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <button onClick={() => setModal("categories")} style={{
+            display: "flex", alignItems: "center", gap: "8px",
+            padding: "10px 18px", background: "white",
+            border: "1px solid #e2e8f0", borderRadius: "11px", color: "#475569",
+            fontSize: "13px", fontWeight: 600, cursor: "pointer",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.02)", flexShrink: 0,
+          }}>
+            <Layers size={15} /> <span>Categories</span>
+          </button>
+          <button onClick={() => setModal("add")} style={{
+            display: "flex", alignItems: "center", gap: "8px",
+            padding: "10px 18px", background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+            border: "none", borderRadius: "11px", color: "white",
+            fontSize: "13px", fontWeight: 600, cursor: "pointer",
+            boxShadow: "0 4px 15px rgba(99,102,241,0.3)", flexShrink: 0,
+          }}>
+            <UserPlus size={16} /> <span>Add Worker</span>
+          </button>
+        </div>
       </div>
 
       {/* ── Stats ── */}
@@ -249,7 +335,21 @@ export default function Employees() {
               {initials(emp.name)}
             </div>
             <div className="emp-card-info">
-              <div className="emp-card-name">{emp.name}</div>
+              <div className="emp-card-name" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                <span>{emp.name}</span>
+                {emp.category && (
+                  <span style={{
+                    fontSize: "9px",
+                    fontWeight: 800,
+                    padding: "1px 6px",
+                    borderRadius: "10px",
+                    background: getCategoryStyle(emp.category)?.bg || "rgba(0,0,0,0.05)",
+                    color: getCategoryStyle(emp.category)?.text || "#475569"
+                  }}>
+                    {emp.category}
+                  </span>
+                )}
+              </div>
               {emp.phone && <div className="emp-card-sub"><Phone size={10} style={{ display: "inline", marginRight: "3px" }} />{emp.phone}</div>}
               <div className="emp-card-wage">{fmtRupee(emp.dailyWage)}/day</div>
             </div>
@@ -300,7 +400,21 @@ export default function Employees() {
                       <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: avatarColor(emp.name), display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 700, fontSize: "13px" }}>
                         {initials(emp.name)}
                       </div>
-                      <span style={{ fontWeight: 600, fontSize: "14px", color: "#0f172a" }}>{emp.name}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontWeight: 600, fontSize: "14px", color: "#0f172a" }}>{emp.name}</span>
+                        {emp.category && (
+                          <span style={{
+                            fontSize: "10px",
+                            fontWeight: 800,
+                            padding: "2px 7px",
+                            borderRadius: "10px",
+                            background: getCategoryStyle(emp.category)?.bg || "rgba(0,0,0,0.05)",
+                            color: getCategoryStyle(emp.category)?.text || "#475569"
+                          }}>
+                            {emp.category}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td style={{ padding: "13px 20px" }}>
@@ -342,12 +456,82 @@ export default function Employees() {
 
       {modal === "add" && (
         <Modal title="Add New Worker" onClose={() => setModal(null)}>
-          <EmployeeForm onSubmit={handleAdd} loading={saving} />
+          <EmployeeForm onSubmit={handleAdd} loading={saving} categories={categories} />
         </Modal>
       )}
       {modal === "edit" && selected && (
         <Modal title="Edit Worker" onClose={() => setModal(null)}>
-          <EmployeeForm initial={selected} onSubmit={handleEdit} loading={saving} />
+          <EmployeeForm initial={selected} onSubmit={handleEdit} loading={saving} categories={categories} />
+        </Modal>
+      )}
+      
+      {/* ── Manage Categories Modal ── */}
+      {modal === "categories" && (
+        <Modal title="Manage Worker Categories" onClose={() => setModal(null)}>
+          {/* Add Category Form */}
+          <form onSubmit={handleAddCategory} style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+            <input 
+              style={{
+                flex: 1, padding: "10px 14px", background: "#f8fafc",
+                border: "1px solid #e2e8f0", borderRadius: "10px", fontSize: "14px",
+                color: "#0f172a", outline: "none", fontFamily: "inherit"
+              }}
+              required 
+              value={newCatName}
+              placeholder="e.g. Mason, Helper, Carpenter"
+              onChange={e => setNewCatName(e.target.value)} 
+            />
+            <button 
+              type="submit" 
+              disabled={savingCat}
+              style={{
+                padding: "10px 16px", background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                border: "none", borderRadius: "10px", color: "white", fontSize: "13px",
+                fontWeight: 600, cursor: "pointer", opacity: savingCat ? 0.7 : 1
+              }}
+            >
+              Add
+            </button>
+          </form>
+
+          {/* Categories List */}
+          <div style={{ maxHeight: "240px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "6px" }}>
+            {categories.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "20px", color: "#94a3b8", fontSize: "13px" }}>
+                No categories created yet. Create Masons, Helpers, etc. above.
+              </div>
+            ) : categories.map(c => (
+              <div 
+                key={c._id} 
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "9px 12px", border: "1px solid #f1f5f9", borderRadius: "10px",
+                  background: "#f8fafc"
+                }}
+              >
+                <span 
+                  style={{
+                    fontSize: "13px", fontWeight: 700, 
+                    color: getCategoryStyle(c.name)?.text || "#475569"
+                  }}
+                >
+                  {c.name}
+                </span>
+                <button 
+                  type="button"
+                  onClick={() => handleDeleteCategory(c._id)}
+                  style={{
+                    border: "none", background: "transparent", cursor: "pointer",
+                    color: "#ef4444", fontSize: "12px", fontWeight: 600, display: "flex",
+                    alignItems: "center", justifyCenter: "center", width: "24px", height: "24px",
+                    borderRadius: "6px"
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
         </Modal>
       )}
       {toast && <Toast msg={toast.msg} type={toast.type} />}

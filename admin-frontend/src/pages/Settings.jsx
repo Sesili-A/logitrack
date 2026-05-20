@@ -32,10 +32,7 @@ export default function Settings() {
   const [pass, setPass] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
   const [savingPass, setSavingPass] = useState(false);
 
-  const [sites, setSites] = useState([]);
-  const [siteForm, setSiteForm] = useState({ name: "", description: "" });
-  const [editingSite, setEditingSite] = useState(null);
-  const [savingSite, setSavingSite] = useState(false);
+
 
   const [pushEnabled, setPushEnabled] = useState(Notification.permission === "granted");
   const [enablingPush, setEnablingPush] = useState(false);
@@ -105,12 +102,7 @@ export default function Settings() {
 
   useEffect(() => {
     API.get("/auth/profile", { headers: hdrs() }).then(r => setProfile(r.data)).catch(() => {});
-    fetchSites();
   }, []);
-
-  const fetchSites = () => {
-    API.get("/sites/all", { headers: hdrs() }).then(r => setSites(r.data)).catch(() => {});
-  };
 
   const handleProfile = async (e) => {
     e.preventDefault(); setSavingProfile(true);
@@ -136,28 +128,7 @@ export default function Settings() {
     finally { setSavingPass(false); }
   };
 
-  const handleSite = async (e) => {
-    e.preventDefault();
-    if (!siteForm.name) return showToast("Site name is required", "error");
-    setSavingSite(true);
-    try {
-      if (editingSite) {
-        await API.put(`/sites/${editingSite}`, siteForm, { headers: hdrs() });
-        showToast("Site updated");
-      } else {
-        await API.post("/sites", siteForm, { headers: hdrs() });
-        showToast("Site added");
-      }
-      setSiteForm({ name: "", description: "" }); setEditingSite(null); fetchSites();
-    } catch (err) { showToast(err.response?.data?.msg || "Failed to save site", "error"); }
-    finally { setSavingSite(false); }
-  };
 
-  const deleteSite = async (id) => {
-    if (!window.confirm("Delete this site?")) return;
-    try { await API.delete(`/sites/${id}`, { headers: hdrs() }); showToast("Site deleted"); fetchSites(); }
-    catch { showToast("Failed to delete site", "error"); }
-  };
 
   const inp = { width: "100%", padding: "11px 14px", background: "#f8fafc", border: "1px solid var(--border)", borderRadius: "10px", fontSize: "14px", color: "#0f172a", outline: "none" };
   const lbl = { display: "block", fontSize: "11px", fontWeight: 700, color: "#64748b", marginBottom: "6px", textTransform: "uppercase", letterSpacing: ".05em" };
@@ -166,7 +137,6 @@ export default function Settings() {
   const tabs = [
     { id: "profile",  label: "Profile",    icon: User },
     { id: "security", label: "Security",   icon: Lock },
-    { id: "sites",    label: "Work Sites", icon: MapPin },
     { id: "notifications", label: "Notifications", icon: Bell },
   ];
 
@@ -325,79 +295,7 @@ export default function Settings() {
             </div>
           )}
 
-          {/* SITES */}
-          {activeTab === "sites" && (
-            <div style={{ animation: "fadeInUp .2s ease" }}>
-              <div className="set-section-header">
-                <div className="set-section-icon" style={{ background: "rgba(245,158,11,.1)", color: "#d97706" }}><MapPin size={18} /></div>
-                <div>
-                  <h2 style={{ fontSize: "16px", fontWeight: 700 }}>Work Sites</h2>
-                  <p style={{ fontSize: "12px", color: "#94a3b8" }}>Manage construction/work sites for deployment</p>
-                </div>
-              </div>
 
-              <div className="set-sites-layout">
-                {/* Form */}
-                <form onSubmit={handleSite} className="set-sites-form">
-                  <h3 style={{ fontSize: "13px", fontWeight: 700, marginBottom: "14px" }}>{editingSite ? "Edit Site" : "Add New Site"}</h3>
-                  <div style={{ marginBottom: "12px" }}>
-                    <label style={lbl}>Site Name *</label>
-                    <input value={siteForm.name} onChange={e => setSiteForm({...siteForm, name: e.target.value})} style={{...inp, background: "white"}} required placeholder="e.g. Site 1 (Downtown)"
-                      onFocus={e => (e.target.style.borderColor = "#6366f1")} onBlur={e => (e.target.style.borderColor = "#e2e8f0")} />
-                  </div>
-                  <div style={{ marginBottom: "14px" }}>
-                    <label style={lbl}>Description</label>
-                    <input value={siteForm.description} onChange={e => setSiteForm({...siteForm, description: e.target.value})} style={{...inp, background: "white"}} placeholder="Optional details"
-                      onFocus={e => (e.target.style.borderColor = "#6366f1")} onBlur={e => (e.target.style.borderColor = "#e2e8f0")} />
-                  </div>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <button type="submit" style={{ ...btnPrimary, flex: 1, padding: "10px", fontSize: "13px", opacity: savingSite ? .7 : 1 }}>
-                      {savingSite ? "Saving…" : editingSite ? "Update" : "Add Site"}
-                    </button>
-                    {editingSite && (
-                      <button type="button" onClick={() => { setEditingSite(null); setSiteForm({ name: "", description: "" }); }}
-                        style={{ padding: "10px 14px", background: "white", border: "1px solid var(--border)", borderRadius: "10px", cursor: "pointer", fontSize: "12px", fontWeight: 600 }}>
-                        Cancel
-                      </button>
-                    )}
-                  </div>
-                </form>
-
-                {/* List */}
-                <div className="set-sites-list">
-                  {sites.length === 0 ? (
-                    <div style={{ textAlign: "center", padding: "36px", color: "#94a3b8", fontSize: "13px" }}>
-                      <MapPin size={28} style={{ margin: "0 auto 8px", opacity: .2 }} />
-                      <p>No sites added yet.</p>
-                    </div>
-                  ) : sites.map(s => (
-                    <div key={s._id} style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                      padding: "13px 14px", border: "1px solid var(--border)", borderRadius: "12px",
-                      background: "white",
-                    }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: "13px", color: "#0f172a", display: "flex", alignItems: "center", gap: "6px" }}>
-                          <MapPin size={12} color="#6366f1" /> {s.name}
-                        </div>
-                        {s.description && <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px", paddingLeft: "18px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.description}</div>}
-                      </div>
-                      <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
-                        <button onClick={() => { setEditingSite(s._id); setSiteForm({ name: s.name, description: s.description }); }}
-                          style={{ padding: "7px", background: "#f8fafc", border: "none", borderRadius: "7px", cursor: "pointer", color: "#64748b" }}>
-                          <Edit2 size={14} />
-                        </button>
-                        <button onClick={() => deleteSite(s._id)}
-                          style={{ padding: "7px", background: "rgba(239,68,68,.08)", border: "none", borderRadius: "7px", cursor: "pointer", color: "#ef4444" }}>
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* NOTIFICATIONS */}
           {activeTab === "notifications" && (

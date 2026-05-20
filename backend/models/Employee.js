@@ -4,6 +4,7 @@ const employeeSchema = new mongoose.Schema({
   name:      { type: String, required: true, trim: true },
   phone:     { type: String, default: null },
   dailyWage: { type: Number, default: 0 },   // ₹ per day — set by contractor
+  category:  { type: String, default: null },
 
   // Only used for admin login accounts, not for regular workers
   email:    { type: String, sparse: true, unique: true },

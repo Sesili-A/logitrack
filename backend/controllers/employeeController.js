@@ -25,7 +25,7 @@ exports.getEmployees = async (req, res) => {
 // Add a worker — no password needed (workers don't log in)
 exports.createEmployee = async (req, res) => {
   try {
-    const { name, phone, dailyWage } = req.body;
+    const { name, phone, dailyWage, category } = req.body;
 
     if (!name || !name.trim())
       return res.status(400).json({ msg: "Name is required" });
@@ -34,6 +34,7 @@ exports.createEmployee = async (req, res) => {
       name:      name.trim(),
       phone:     phone?.trim() || null,
       dailyWage: Number(dailyWage) || 0,
+      category:  category?.trim() || null,
       role:      "employee",
       adminId:   req.user.id,
     });
@@ -47,7 +48,7 @@ exports.createEmployee = async (req, res) => {
 // Update worker details
 exports.updateEmployee = async (req, res) => {
   try {
-    const { name, phone, dailyWage } = req.body;
+    const { name, phone, dailyWage, category } = req.body;
 
     const emp = await Employee.findOneAndUpdate(
       { _id: req.params.id, adminId: req.user.id },
@@ -55,6 +56,7 @@ exports.updateEmployee = async (req, res) => {
         name:      name?.trim(),
         phone:     phone?.trim() || null,
         dailyWage: Number(dailyWage) || 0,
+        category:  category?.trim() || null,
       },
       { new: true }
     ).select("-password");

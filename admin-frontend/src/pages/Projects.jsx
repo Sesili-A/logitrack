@@ -3,7 +3,7 @@ import Layout from "../components/Layout";
 import API from "../services/api";
 import {
   MapPin, Plus, Trash2, ChevronDown, ChevronUp,
-  Calendar, IndianRupee, CheckCircle, PauseCircle, X, StickyNote,
+  Calendar, IndianRupee, CheckCircle, PauseCircle, X, StickyNote, Edit2,
 } from "lucide-react";
 
 const hdrs     = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
@@ -65,7 +65,11 @@ const FSel = ({ value, onChange, children }) => (
 /* ─── Main component ────────────────────────────────────────────────────────── */
 export default function Projects() {
   const [projects,   setProjects]   = useState([]);
-  const [sites,      setSites]      = useState([]);
+  const [sites,      setSites]      = useState([]); // active sites for new projects dropdown
+  const [allSites,   setAllSites]   = useState([]); // all sites (active & inactive) for site manager
+  const [siteForm,   setSiteForm]   = useState({ name: "", description: "" });
+  const [editingSite, setEditingSite] = useState(null);
+  const [savingSite, setSavingSite] = useState(false);
   const [loading,    setLoading]    = useState(true);
   const [expanded,   setExpanded]   = useState({});
   const [detail,     setDetail]     = useState({});   // { id: { expenses, totalReceived } }
@@ -82,8 +86,46 @@ export default function Projects() {
   /* fetch */
   useEffect(() => {
     load();
-    API.get("/sites", { headers:hdrs() }).then(r => setSites(r.data)).catch(()=>{});
+    fetchSites();
   }, []);
+
+  const fetchSites = () => {
+    API.get("/sites", { headers: hdrs() }).then(r => setSites(r.data)).catch(() => {});
+    API.get("/sites/all", { headers: hdrs() }).then(r => setAllSites(r.data)).catch(() => {});
+  };
+
+  const handleSite = async (e) => {
+    e.preventDefault();
+    if (!siteForm.name || !siteForm.name.trim()) return showToast("Site name is required", "error");
+    setSavingSite(true);
+    try {
+      if (editingSite) {
+        await API.put(`/sites/${editingSite}`, siteForm, { headers: hdrs() });
+        showToast("Site updated");
+      } else {
+        await API.post("/sites", siteForm, { headers: hdrs() });
+        showToast("Site added");
+      }
+      setSiteForm({ name: "", description: "" });
+      setEditingSite(null);
+      fetchSites();
+    } catch (err) {
+      showToast(err.response?.data?.msg || "Failed to save site", "error");
+    } finally {
+      setSavingSite(false);
+    }
+  };
+
+  const deleteSite = async (id) => {
+    if (!window.confirm("Delete this site?")) return;
+    try {
+      await API.delete(`/sites/${id}`, { headers: hdrs() });
+      showToast("Site deleted");
+      fetchSites();
+    } catch {
+      showToast("Failed to delete site", "error");
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -180,6 +222,39 @@ export default function Projects() {
             border:"none", borderRadius:"11px", fontSize:"13px", fontWeight:600, cursor:"pointer" }}>
           <Plus size={15} /> New Project
         </button>
+      </div>
+
+      {/* Workflow Instruction Banner */}
+      <div style={{
+        background: "rgba(99, 102, 241, 0.08)",
+        border: "1px solid rgba(99, 102, 241, 0.2)",
+        borderRadius: "14px",
+        padding: "16px 20px",
+        marginBottom: "24px",
+        display: "flex",
+        alignItems: "flex-start",
+        gap: "14px"
+      }}>
+        <div style={{
+          width: "36px",
+          height: "36px",
+          borderRadius: "10px",
+          background: "rgba(99, 102, 241, 0.15)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0
+        }}>
+          <Calendar size={18} color="#6366f1" />
+        </div>
+        <div style={{ flex: 1 }}>
+          <h4 style={{ fontSize: "14px", fontWeight: 700, color: "#4f46e5", marginBottom: "4px" }}>
+            Workflow Tip: Set Up Sites First
+          </h4>
+          <p style={{ fontSize: "12.5px", color: "#475569", lineHeight: 1.5 }}>
+            To create a project and record contractor deployments or log client payments, you must first register a **Work Site**. Use the site management dashboard at the bottom of this page to create, update, or remove sites. Once added, you can link a new project to that site.
+          </p>
+        </div>
       </div>
 
       {/* List */}
@@ -402,6 +477,93 @@ export default function Projects() {
           </div>
         </Modal>
       )}
+
+      {/* Sites Manager Section */}
+      <div style={{ marginTop: "40px", borderTop: "1px solid #e2e8f0", paddingTop: "30px", marginBottom: "40px" }}>
+        <div style={{ marginBottom: "20px" }}>
+          <h2 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", marginBottom: "3px" }}>Manage Work Sites</h2>
+          <p style={{ color: "#64748b", fontSize: "13px" }}>Add, edit, or remove construction and work sites</p>
+        </div>
+
+        <div style={{ display: "flex", gap: "24px", alignItems: "flex-start", flexWrap: "wrap" }}>
+          {/* Form */}
+          <form onSubmit={handleSite} style={{
+            flex: "1 1 280px",
+            background: "#f8fafc",
+            padding: "20px",
+            borderRadius: "14px",
+            border: "1px solid #e2e8f0"
+          }}>
+            <h3 style={{ fontSize: "14px", fontWeight: 700, color: "#334155", marginBottom: "14px" }}>
+              {editingSite ? "Edit Work Site" : "Register New Site"}
+            </h3>
+            <div style={{ marginBottom: "12px" }}>
+              <FL>Site Name *</FL>
+              <FI type="text" value={siteForm.name} onChange={e => setSiteForm({...siteForm, name: e.target.value})} required placeholder="e.g. Site A (West Block)" style={{ background: "white" }} />
+            </div>
+            <div style={{ marginBottom: "16px" }}>
+              <FL>Description</FL>
+              <FI type="text" value={siteForm.description} onChange={e => setSiteForm({...siteForm, description: e.target.value})} placeholder="e.g. 5 Storey Building" style={{ background: "white" }} />
+            </div>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button type="submit" style={{
+                flex: 1, padding: "10px", background: "linear-gradient(135deg,#6366f1,#4f46e5)",
+                color: "white", border: "none", borderRadius: "10px", fontSize: "13px", fontWeight: 600,
+                cursor: "pointer"
+              }}>
+                {savingSite ? "Saving…" : editingSite ? "Update" : "Add Site"}
+              </button>
+              {editingSite && (
+                <button type="button" onClick={() => { setEditingSite(null); setSiteForm({ name: "", description: "" }); }}
+                  style={{
+                    padding: "10px 14px", background: "white", border: "1px solid #e2e8f0",
+                    borderRadius: "10px", cursor: "pointer", fontSize: "12px", fontWeight: 600
+                  }}>
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+
+          {/* List */}
+          <div style={{ flex: "2 1 400px", display: "flex", flexDirection: "column", gap: "8px" }}>
+            {allSites.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px", color: "#94a3b8", background: "white", borderRadius: "14px", border: "1px solid #f1f5f9" }}>
+                <MapPin size={28} style={{ margin: "0 auto 8px", opacity: .2 }} />
+                <p style={{ fontSize: "13px" }}>No sites registered yet.</p>
+              </div>
+            ) : allSites.map(s => (
+              <div key={s._id} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "13px 16px", border: "1px solid #e2e8f0", borderRadius: "12px",
+                background: "white", boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
+              }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: "13.5px", color: "#0f172a", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <MapPin size={13} color="#6366f1" /> {s.name}
+                  </div>
+                  {s.description && (
+                    <div style={{
+                      fontSize: "11.5px", color: "#64748b", marginTop: "3px", paddingLeft: "19px",
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
+                    }}>{s.description}</div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+                  <button onClick={() => { setEditingSite(s._id); setSiteForm({ name: s.name, description: s.description }); }}
+                    style={{ padding: "7px", background: "#f8fafc", border: "none", borderRadius: "7px", cursor: "pointer", color: "#64748b" }}>
+                    <Edit2 size={13} />
+                  </button>
+                  <button onClick={() => deleteSite(s._id)}
+                    style={{ padding: "7px", background: "rgba(239,68,68,.08)", border: "none", borderRadius: "7px", cursor: "pointer", color: "#ef4444" }}>
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Toast */}
       {toast && (
