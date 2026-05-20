@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import Layout from "../components/Layout";
 import { MapPin, TrendingUp, Calendar, Users, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-react";
 import API from "../services/api";
@@ -24,11 +24,12 @@ function fmtDayLabel(dateStr) {
 }
 
 export default function Sites() {
-  const [siteStats,   setSiteStats]   = useState({});
-  const [loading,     setLoading]     = useState(true);
-  const [weekStart,   setWeekStart]   = useState(getWeekStart());
-  const [weekEnd,     setWeekEnd]     = useState(null);
-  const [expanded,    setExpanded]    = useState({}); // { siteName: true }
+  const [siteStats,     setSiteStats]     = useState({});
+  const [loading,       setLoading]       = useState(true);
+  const [weekStart,     setWeekStart]     = useState(getWeekStart());
+  const [weekEnd,       setWeekEnd]       = useState(null);
+  const [expanded,      setExpanded]      = useState({}); // { siteName: true }
+  const [expandedDates, setExpandedDates] = useState({}); // { [siteName_dateStr]: boolean }
 
   const isCurrentWeek = toYMD(weekStart) === toYMD(getWeekStart());
 
@@ -66,6 +67,13 @@ export default function Sites() {
 
   const toggleExpand = (site) => setExpanded(prev => ({ ...prev, [site]: !prev[site] }));
 
+  const toggleDateExpand = (site, dateStr) => {
+    setExpandedDates(prev => ({
+      ...prev,
+      [`${site}_${dateStr}`]: !prev[`${site}_${dateStr}`]
+    }));
+  };
+
   return (
     <Layout>
       <style>{`
@@ -85,7 +93,34 @@ export default function Sites() {
         .daywise-table { width:100%; border-collapse:collapse; }
         .daywise-table th { padding:8px 16px; text-align:left; font-size:10px; font-weight:700; color:#94a3b8; letter-spacing:0.06em; text-transform:uppercase; background:#f8fafc; }
         .daywise-table td { padding:10px 16px; border-top:1px solid #f1f5f9; font-size:13px; }
+        .daywise-row { cursor:pointer; }
         .daywise-row:hover td { background:#fffbf5; }
+        .employee-list-container {
+          padding:12px 18px 16px;
+          background:#fafbfc;
+          border-top:1px dashed #e2e8f0;
+          animation:slideDown 0.25s ease-out;
+        }
+        .employee-card {
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          padding:8px 12px;
+          background:white;
+          border:1px solid #f1f5f9;
+          border-radius:8px;
+          margin-bottom:6px;
+          box-shadow:0 1px 3px rgba(0,0,0,0.02);
+          transition:all 0.2s;
+        }
+        .employee-card:hover {
+          border-color:#e2e8f0;
+          box-shadow:0 2px 5px rgba(0,0,0,0.04);
+        }
+        @keyframes slideDown {
+          from { opacity:0; transform:translateY(-4px); }
+          to { opacity:1; transform:translateY(0); }
+        }
         @media(max-width:640px){
           .sites-summary { grid-template-columns:1fr 1fr; }
           .site-chips { gap:8px; }
@@ -234,27 +269,92 @@ export default function Sites() {
                           {dayWiseEntries.map(([dateStr, dv]) => {
                             const count    = getDayCount(dv);
                             const statuses = getDayStatuses(dv);
+                            const isDateOpen = !!expandedDates[`${s.site}_${dateStr}`];
                             return (
-                            <tr key={dateStr} className="daywise-row">
-                              <td style={{ fontWeight:600, color:"#0f172a" }}>{fmtDayLabel(dateStr)}</td>
-                              <td>
-                                <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
-                                  <div style={{ width:"32px", height:"32px", borderRadius:"50%", background:`${col}18`, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, color:col, fontSize:"14px" }}>
-                                    {count}
-                                  </div>
-                                  <div style={{ display:"flex", gap:"4px", flexWrap:"wrap" }}>
-                                    {statuses["Present"] > 0 && <span style={{ fontSize:"10px", padding:"2px 6px", background:"rgba(16,185,129,0.1)", color:"#059669", borderRadius:"4px", fontWeight:600 }}>{statuses["Present"]}P</span>}
-                                    {statuses["Half-Day"] > 0 && <span style={{ fontSize:"10px", padding:"2px 6px", background:"rgba(245,158,11,0.1)", color:"#d97706", borderRadius:"4px", fontWeight:600 }}>{statuses["Half-Day"] === 1 ? "½" : statuses["Half-Day"] + " (½)"}</span>}
-                                    {statuses["Overtime"] > 0 && <span style={{ fontSize:"10px", padding:"2px 6px", background:"rgba(245,143,124,0.15)", color:"#e07a67", borderRadius:"4px", fontWeight:600 }}>{statuses["Overtime"]}OT</span>}
-                                  </div>
-                                </div>
-                              </td>
-                              <td style={{ width:"40%" }}>
-                                <div style={{ height:"8px", background:"#f1f5f9", borderRadius:"99px", overflow:"hidden" }}>
-                                  <div style={{ height:"100%", borderRadius:"99px", background:col, width:`${peakWorkers > 0 ? (count/peakWorkers)*100 : 0}%`, transition:"width 0.4s" }} />
-                                </div>
-                              </td>
-                            </tr>
+                              <Fragment key={dateStr}>
+                                <tr className="daywise-row" onClick={() => toggleDateExpand(s.site, dateStr)}>
+                                  <td style={{ fontWeight:600, color:"#0f172a" }}>
+                                    <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
+                                      {isDateOpen ? <ChevronUp size={14} color="#94a3b8" /> : <ChevronDown size={14} color="#94a3b8" />}
+                                      {fmtDayLabel(dateStr)}
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
+                                      <div style={{ width:"32px", height:"32px", borderRadius:"50%", background:`${col}18`, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, color:col, fontSize:"14px" }}>
+                                        {count}
+                                      </div>
+                                      <div style={{ display:"flex", gap:"4px", flexWrap:"wrap" }}>
+                                        {statuses["Present"] > 0 && <span style={{ fontSize:"10px", padding:"2px 6px", background:"rgba(16,185,129,0.1)", color:"#059669", borderRadius:"4px", fontWeight:600 }}>{statuses["Present"]}P</span>}
+                                        {statuses["Half-Day"] > 0 && <span style={{ fontSize:"10px", padding:"2px 6px", background:"rgba(245,158,11,0.1)", color:"#d97706", borderRadius:"4px", fontWeight:600 }}>{statuses["Half-Day"] === 1 ? "½" : statuses["Half-Day"] + " (½)"}</span>}
+                                        {statuses["Overtime"] > 0 && <span style={{ fontSize:"10px", padding:"2px 6px", background:"rgba(245,143,124,0.15)", color:"#e07a67", borderRadius:"4px", fontWeight:600 }}>{statuses["Overtime"]}OT</span>}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td style={{ width:"40%" }}>
+                                    <div style={{ height:"8px", background:"#f1f5f9", borderRadius:"99px", overflow:"hidden" }}>
+                                      <div style={{ height:"100%", borderRadius:"99px", background:col, width:`${peakWorkers > 0 ? (count/peakWorkers)*100 : 0}%`, transition:"width 0.4s" }} />
+                                    </div>
+                                  </td>
+                                </tr>
+                                {isDateOpen && (
+                                  <tr>
+                                    <td colSpan={3} style={{ padding:0, background:"#fafbfc" }}>
+                                      <div className="employee-list-container">
+                                        <div style={{ fontSize:"11px", fontWeight:700, color:"#94a3b8", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:"10px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                                          <span>Deployments ({count} workers)</span>
+                                          <span style={{ color:col }}>Daily Site Wages</span>
+                                        </div>
+                                        {dv.employees && dv.employees.length > 0 ? (
+                                          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:"10px" }}>
+                                            {dv.employees.map(emp => {
+                                              const earnedWage = emp.status === "Half-Day" 
+                                                ? (emp.dailyWage * 0.5) 
+                                                : emp.status === "Overtime"
+                                                  ? (emp.dailyWage + (emp.dailyWage / 8) * emp.overtimeHours)
+                                                  : emp.dailyWage;
+                                              const initials = emp.name ? emp.name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase() : "?";
+                                              return (
+                                                <div key={emp._id} className="employee-card">
+                                                  <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
+                                                    <div style={{ width:"32px", height:"32px", borderRadius:"50%", background:`${col}10`, border:`1px solid ${col}25`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"12px", fontWeight:700, color:col }}>
+                                                      {initials}
+                                                    </div>
+                                                    <div>
+                                                      <div style={{ fontSize:"13px", fontWeight:600, color:"#1e293b" }}>{emp.name}</div>
+                                                      <div style={{ display:"flex", alignItems:"center", gap:"6px", marginTop:"2px" }}>
+                                                        <span style={{ fontSize:"10px", color:"#64748b" }}>Rate: ₹{emp.dailyWage}/day</span>
+                                                        {emp.status === "Present" && (
+                                                          <span style={{ fontSize:"10px", padding:"1px 5px", background:"rgba(16,185,129,0.1)", color:"#059669", borderRadius:"4px", fontWeight:600 }}>Present</span>
+                                                        )}
+                                                        {emp.status === "Half-Day" && (
+                                                          <span style={{ fontSize:"10px", padding:"1px 5px", background:"rgba(245,158,11,0.1)", color:"#d97706", borderRadius:"4px", fontWeight:600 }}>Half-Day</span>
+                                                        )}
+                                                        {emp.status === "Overtime" && (
+                                                          <span style={{ fontSize:"10px", padding:"1px 5px", background:"rgba(245,143,124,0.15)", color:"#e07a67", borderRadius:"4px", fontWeight:600 }}>
+                                                            OT ({emp.overtimeHours}h)
+                                                          </span>
+                                                        )}
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                  <div style={{ textAlign:"right" }}>
+                                                    <div style={{ fontSize:"13px", fontWeight:700, color:"#1e293b" }}>₹{earnedWage.toLocaleString("en-IN")}</div>
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        ) : (
+                                          <div style={{ fontSize:"12px", color:"#64748b", fontStyle:"italic", padding:"4px 0" }}>
+                                            No individual worker records available for this date.
+                                          </div>
+                                        )}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </Fragment>
                             );
                           })}
                         </tbody>

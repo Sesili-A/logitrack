@@ -221,8 +221,17 @@ exports.getWeeklyPayroll = async (req, res) => {
         siteStats[siteName].workerIds.add(p._id.toString());
         // Day-wise tracking
         const dayKey = new Date(sd.date).toISOString().split("T")[0];
-        if (!siteStats[siteName].dayWise[dayKey]) siteStats[siteName].dayWise[dayKey] = { workers: new Set(), statuses: {} };
+        if (!siteStats[siteName].dayWise[dayKey]) {
+          siteStats[siteName].dayWise[dayKey] = { workers: new Set(), statuses: {}, employeeDetails: [] };
+        }
         siteStats[siteName].dayWise[dayKey].workers.add(p._id.toString());
+        siteStats[siteName].dayWise[dayKey].employeeDetails.push({
+          _id: p._id.toString(),
+          name: p.name,
+          status: sd.status,
+          overtimeHours: sd.overtimeHours || 0,
+          dailyWage: p.dailyWage
+        });
         // track per-status counts for display
         const st = sd.status;
         siteStats[siteName].dayWise[dayKey].statuses[st] = (siteStats[siteName].dayWise[dayKey].statuses[st] || 0) + 1;
@@ -241,6 +250,7 @@ exports.getWeeklyPayroll = async (req, res) => {
               .map(([date, dv]) => [date, {
                 count:    dv.workers.size,
                 statuses: dv.statuses,
+                employees: dv.employeeDetails,
               }])
           ),
         }
