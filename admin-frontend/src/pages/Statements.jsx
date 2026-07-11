@@ -83,6 +83,18 @@ export default function Statements() {
         .ledger-table th { background: #f8fafc; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 12px 16px; text-align: left; border-bottom: 2px solid #e2e8f0; }
         .ledger-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; }
         .ledger-table tr:hover td { background: #f8fafc; }
+        .ledger-table tr:hover td { background: #f8fafc; }
+        
+        .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .stmt-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        
+        @media (max-width: 768px) {
+          .stmt-tabs { flex-wrap: wrap; }
+          .stmt-tab { flex: 1; justify-content: center; text-align: center; font-size: 13px; padding: 10px; }
+          .stmt-header { flex-direction: column; align-items: stretch; gap: 14px; }
+          .stmt-header button { width: 100%; justify-content: center; }
+          .inp-wrap { min-width: 100%; }
+        }
         
         @media print {
           body * { visibility: hidden; }
@@ -93,8 +105,8 @@ export default function Statements() {
       `}</style>
 
       <div className="stmt-card">
-        <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <h1 style={{ fontSize: "22px", fontWeight: 800, color: "#0f172a" }}>Statements / Ledgers</h1>
+        <div className="no-print stmt-header">
+          <h1 style={{ fontSize: "22px", fontWeight: 800, color: "#0f172a", margin: 0 }}>Statements / Ledgers</h1>
           <button onClick={handlePrint} disabled={!ledgerData} style={{
             display: "flex", alignItems: "center", gap: "8px", padding: "10px 16px", background: "#f8fafc",
             border: "1px solid #e2e8f0", borderRadius: "10px", color: "#0f172a", fontSize: "14px", fontWeight: 600, cursor: ledgerData ? "pointer" : "not-allowed", opacity: ledgerData ? 1 : 0.5
@@ -179,41 +191,43 @@ export default function Statements() {
               {ledgerData.ledger.length === 0 ? (
                 <div style={{ textAlign: "center", padding: "40px", color: "#94a3b8" }}>No transactions found for {ledgerData.year}.</div>
               ) : (
-                <table className="ledger-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: "120px" }}>Date</th>
-                      <th>Particulars</th>
-                      <th style={{ textAlign: "right" }}>Debit (-)</th>
-                      <th style={{ textAlign: "right" }}>Credit (+)</th>
-                      <th style={{ textAlign: "right" }}>Balance</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ledgerData.ledger.map((entry, idx) => (
-                      <tr key={idx}>
-                        <td>{fmtDate(entry.date)}</td>
-                        <td>{entry.particulars}</td>
-                        <td style={{ textAlign: "right", color: entry.debit > 0 ? "#dc2626" : "inherit" }}>
-                          {entry.debit > 0 ? fmtRupee(entry.debit) : ""}
-                        </td>
-                        <td style={{ textAlign: "right", color: entry.credit > 0 ? "#10b981" : "inherit" }}>
-                          {entry.credit > 0 ? fmtRupee(entry.credit) : ""}
-                        </td>
-                        <td style={{ textAlign: "right", fontWeight: 600 }}>
-                          {fmtRupee(entry.balance)}
+                <div className="table-wrapper">
+                  <table className="ledger-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: "120px" }}>Date</th>
+                        <th>Particulars</th>
+                        <th style={{ textAlign: "right" }}>Debit (-)</th>
+                        <th style={{ textAlign: "right" }}>Credit (+)</th>
+                        <th style={{ textAlign: "right" }}>Balance</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ledgerData.ledger.map((entry, idx) => (
+                        <tr key={idx}>
+                          <td>{fmtDate(entry.date)}</td>
+                          <td>{entry.particulars}</td>
+                          <td style={{ textAlign: "right", color: entry.debit > 0 ? "#dc2626" : "inherit" }}>
+                            {entry.debit > 0 ? fmtRupee(entry.debit) : ""}
+                          </td>
+                          <td style={{ textAlign: "right", color: entry.credit > 0 ? "#10b981" : "inherit" }}>
+                            {entry.credit > 0 ? fmtRupee(entry.credit) : ""}
+                          </td>
+                          <td style={{ textAlign: "right", fontWeight: 600 }}>
+                            {fmtRupee(entry.balance)}
+                          </td>
+                        </tr>
+                      ))}
+                      {/* Summary Row */}
+                      <tr style={{ background: "#f8fafc", fontWeight: 800 }}>
+                        <td colSpan={2} style={{ textAlign: "right" }}>Closing Balance:</td>
+                        <td colSpan={3} style={{ textAlign: "right", fontSize: "16px" }}>
+                          {fmtRupee(ledgerData.ledger[ledgerData.ledger.length - 1].balance)}
                         </td>
                       </tr>
-                    ))}
-                    {/* Summary Row */}
-                    <tr style={{ background: "#f8fafc", fontWeight: 800 }}>
-                      <td colSpan={2} style={{ textAlign: "right" }}>Closing Balance:</td>
-                      <td colSpan={3} style={{ textAlign: "right", fontSize: "16px" }}>
-                        {fmtRupee(ledgerData.ledger[ledgerData.ledger.length - 1].balance)}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
+                </div>
               )}
             </>
           )}
