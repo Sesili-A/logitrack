@@ -14,7 +14,7 @@ function getWeekStart(date) {
 // Add an advance
 exports.addAdvance = async (req, res) => {
   try {
-    const { employeeId, amount, date, note } = req.body;
+    const { employeeId, amount, date, note, site } = req.body;
 
     if (!employeeId || !amount)
       return res.status(400).json({ msg: "Employee and amount are required" });
@@ -27,6 +27,7 @@ exports.addAdvance = async (req, res) => {
       amount:     Number(amount),
       date:       advanceDate,
       note:       note || "",
+      site:       site || null,
       weekStart,
       recordedBy: req.user.id,
       adminId:    req.user.id,

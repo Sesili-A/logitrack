@@ -43,11 +43,11 @@ export default function Statements() {
     try {
       let res;
       if (tab === "employee") {
-        res = await API.get(`/reports/employee-ledger/${selectedEmp}?year=${year}`, { headers: hdrs() });
+        res = await API.get(`/reports/employee-ledger/${encodeURIComponent(selectedEmp)}?year=${year}`, { headers: hdrs() });
       } else if (tab === "site") {
-        res = await API.get(`/reports/site-ledger/${selectedSite}?year=${year}`, { headers: hdrs() });
+        res = await API.get(`/reports/site-ledger/${encodeURIComponent(selectedSite)}?year=${year}`, { headers: hdrs() });
       } else if (tab === "project") {
-        res = await API.get(`/reports/project-ledger/${selectedProject}?year=${year}`, { headers: hdrs() });
+        res = await API.get(`/reports/project-ledger/${encodeURIComponent(selectedProject)}?year=${year}`, { headers: hdrs() });
       }
       setLedgerData(res.data);
     } catch (err) {
@@ -68,30 +68,32 @@ export default function Statements() {
   return (
     <Layout>
       <style>{`
-        .stmt-card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #f1f5f9; }
-        .stmt-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; }
-        .stmt-tab { display: flex; alignItems: center; gap: 8px; padding: 10px 18px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; }
+        .stmt-card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #f1f5f9; }
+        
+        /* Swipeable tabs for mobile */
+        .stmt-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+        .stmt-tabs::-webkit-scrollbar { display: none; }
+        .stmt-tab { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; white-space: nowrap; flex-shrink: 0; }
         .stmt-tab.active { background: #0f172a; color: white; }
         .stmt-tab:not(.active) { background: #f8fafc; color: #64748b; }
         .stmt-tab:not(.active):hover { background: #f1f5f9; color: #0f172a; }
         
-        .inp-wrap { position: relative; flex: 1; min-width: 200px; }
+        .inp-wrap { position: relative; flex: 1; min-width: 140px; }
         .inp { width: 100%; padding: 12px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 14px; color: #0f172a; outline: none; appearance: none; }
         .inp:focus { border-color: #6366f1; }
         
         .ledger-table { width: 100%; border-collapse: collapse; margin-top: 24px; font-size: 13px; }
-        .ledger-table th { background: #f8fafc; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 12px 16px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+        .ledger-table th { background: #f8fafc; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 12px 16px; text-align: left; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
         .ledger-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; }
-        .ledger-table tr:hover td { background: #f8fafc; }
         .ledger-table tr:hover td { background: #f8fafc; }
         
         .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        .stmt-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         
-        @media (max-width: 768px) {
-          .stmt-tabs { flex-wrap: wrap; }
-          .stmt-tab { flex: 1; justify-content: center; text-align: center; font-size: 13px; padding: 10px; }
-          .stmt-header { flex-direction: column; align-items: stretch; gap: 14px; }
+        .stmt-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 20px; }
+        
+        @media (max-width: 600px) {
+          .stmt-header { flex-direction: column; align-items: stretch; }
+          .stmt-header h1 { font-size: 20px !important; text-align: center; }
           .stmt-header button { width: 100%; justify-content: center; }
           .inp-wrap { min-width: 100%; }
         }
@@ -106,7 +108,7 @@ export default function Statements() {
 
       <div className="stmt-card">
         <div className="no-print stmt-header">
-          <h1 style={{ fontSize: "22px", fontWeight: 800, color: "#0f172a", margin: 0 }}>Statements / Ledgers</h1>
+          <h1 style={{ fontSize: "22px", fontWeight: 800, color: "#0f172a", margin: 0 }}>Statements</h1>
           <button onClick={handlePrint} disabled={!ledgerData} style={{
             display: "flex", alignItems: "center", gap: "8px", padding: "10px 16px", background: "#f8fafc",
             border: "1px solid #e2e8f0", borderRadius: "10px", color: "#0f172a", fontSize: "14px", fontWeight: 600, cursor: ledgerData ? "pointer" : "not-allowed", opacity: ledgerData ? 1 : 0.5

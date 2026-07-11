@@ -20,6 +20,7 @@ app.use("/api/attendance", require("./routes/attendanceRoutes"));
 app.use("/api/advances",   require("./routes/advanceRoutes"));
 app.use("/api/sites",      require("./routes/siteRoutes"));
 app.use("/api/projects",   require("./routes/projectRoutes"));
+app.use("/api/reports",    require("./routes/reportRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/contractors", require("./routes/contractorRoutes"));
 app.use("/api/worker-categories", require("./routes/workerCategoryRoutes"));

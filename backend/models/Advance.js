@@ -10,6 +10,7 @@ const advanceSchema = new mongoose.Schema({
   amount:     { type: Number, required: true, min: 1 },
   date:       { type: Date,   default: Date.now },
   note:       { type: String, default: "" },
+  site:       { type: String, default: null }, // Track which site the advance is for
   weekStart:  { type: Date },   // Monday of the week — for weekly grouping
   recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
   adminId:    { type: mongoose.Schema.Types.ObjectId, ref: "Employee" }, // Added for multi-tenancy
