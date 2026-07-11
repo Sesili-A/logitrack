@@ -52,20 +52,34 @@ function Toast({ msg, type }) {
 const inp = { width: "100%", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", fontSize: "13px", color: "#0f172a", outline: "none", fontFamily: "inherit" };
 const lbl = { display: "block", fontSize: "11px", fontWeight: 700, color: "#64748b", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" };
 
-function AdvanceForm({ form, setForm, employees, saving, onSubmit }) {
+function AdvanceForm({ form, setForm, employees, sites, saving, onSubmit }) {
   return (
     <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-      {/* Worker */}
-      <div>
-        <label style={lbl}>Worker *</label>
-        <div style={{ position: "relative" }}>
-          <select value={form.employeeId}
-            onChange={e => setForm(f => ({ ...f, employeeId: e.target.value }))}
-            style={{ ...inp, appearance: "none", paddingRight: "32px" }}>
-            <option value="">Select worker…</option>
-            {employees.map(emp => <option key={emp._id} value={emp._id}>{emp.name}</option>)}
-          </select>
-          <ChevronDown size={13} color="#94a3b8" style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+      {/* Worker and Site */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+        <div>
+          <label style={lbl}>Worker *</label>
+          <div style={{ position: "relative" }}>
+            <select value={form.employeeId}
+              onChange={e => setForm(f => ({ ...f, employeeId: e.target.value }))}
+              style={{ ...inp, appearance: "none", paddingRight: "32px" }}>
+              <option value="">Select worker…</option>
+              {employees.map(emp => <option key={emp._id} value={emp._id}>{emp.name}</option>)}
+            </select>
+            <ChevronDown size={13} color="#94a3b8" style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+          </div>
+        </div>
+        <div>
+          <label style={lbl}>Site</label>
+          <div style={{ position: "relative" }}>
+            <select value={form.site}
+              onChange={e => setForm(f => ({ ...f, site: e.target.value }))}
+              style={{ ...inp, appearance: "none", paddingRight: "32px" }}>
+              <option value="">Select site…</option>
+              {sites?.map(s => <option key={s._id} value={s.name}>{s.name}</option>)}
+            </select>
+            <ChevronDown size={13} color="#94a3b8" style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+          </div>
         </div>
       </div>
 
@@ -127,8 +141,9 @@ function AdvanceForm({ form, setForm, employees, saving, onSubmit }) {
 
 export default function Advances() {
   const [employees, setEmployees] = useState([]);
+  const [sites, setSites] = useState([]);
   const [advances,  setAdvances]  = useState([]);
-  const [form, setForm] = useState({ employeeId: "", amount: "", date: today(), note: "" });
+  const [form, setForm] = useState({ employeeId: "", amount: "", date: today(), note: "", site: "" });
   const [saving,    setSaving]    = useState(false);
   const [toast,     setToast]     = useState(null);
   const [confirmId, setConfirmId] = useState(null);
@@ -149,6 +164,13 @@ export default function Advances() {
     } catch {}
   }, []);
 
+  const fetchSites = useCallback(async () => {
+    try {
+      const res = await API.get("/sites", { headers: hdrs() });
+      setSites(res.data);
+    } catch {}
+  }, []);
+
   const fetchAdvances = useCallback(async () => {
     try {
       const res = await API.get("/advances", { headers: hdrs() });
@@ -156,7 +178,7 @@ export default function Advances() {
     } catch {}
   }, []);
 
-  useEffect(() => { fetchEmployees(); fetchAdvances(); }, [fetchEmployees, fetchAdvances]);
+  useEffect(() => { fetchEmployees(); fetchSites(); fetchAdvances(); }, [fetchEmployees, fetchSites, fetchAdvances]);
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -165,7 +187,7 @@ export default function Advances() {
     try {
       await API.post("/advances", form, { headers: hdrs() });
       await fetchAdvances();
-      setForm(f => ({ ...f, amount: "", note: "", date: today() }));
+      setForm(f => ({ ...f, amount: "", note: "", site: "", date: today() }));
       showToast("Advance recorded successfully");
       setShowForm(false);
     } catch (err) {
@@ -381,7 +403,7 @@ export default function Advances() {
       <div className={`adv-mobile-form ${showForm ? "adv-mobile-form--open" : ""}`}>
         <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#0f172a", marginBottom: "4px" }}>Record Advance</h2>
         <p style={{ color: "#94a3b8", fontSize: "12px", marginBottom: "16px" }}>Cash given to worker mid-week</p>
-        <AdvanceForm form={form} setForm={setForm} employees={employees} saving={saving} onSubmit={handleAdd} />
+        <AdvanceForm form={form} setForm={setForm} employees={employees} sites={sites} saving={saving} onSubmit={handleAdd} />
       </div>
 
       {/* ── Main layout ── */}
@@ -392,7 +414,7 @@ export default function Advances() {
           <div className="adv-form-card">
             <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#0f172a", marginBottom: "4px" }}>Record Advance</h2>
             <p style={{ color: "#94a3b8", fontSize: "12px", marginBottom: "20px" }}>Cash given to worker mid-week</p>
-            <AdvanceForm form={form} setForm={setForm} employees={employees} saving={saving} onSubmit={handleAdd} />
+            <AdvanceForm form={form} setForm={setForm} employees={employees} sites={sites} saving={saving} onSubmit={handleAdd} />
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>

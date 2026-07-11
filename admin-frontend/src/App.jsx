@@ -9,6 +9,7 @@ import Projects      from "./pages/Projects";
 import Advances      from "./pages/Advances";
 import WeeklyPayroll from "./pages/WeeklyPayroll";
 import Reports       from "./pages/Reports";
+import Statements    from "./pages/Statements";
 import Settings      from "./pages/Settings";
 import Contractors   from "./pages/Contractors";
 
@@ -25,6 +26,7 @@ function App() {
         <Route path="/advances"   element={<Advances />} />
         <Route path="/payroll"    element={<WeeklyPayroll />} />
         <Route path="/reports"    element={<Reports />} />
+        <Route path="/statements" element={<Statements />} />
         <Route path="/settings"   element={<Settings />} />
         <Route path="/contractors" element={<Contractors />} />
       </Routes>

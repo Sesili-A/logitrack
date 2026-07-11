@@ -5,7 +5,7 @@ import {
   PieChart, Users, CalendarCheck,
   Calculator, Banknote, Sliders, LogOut,
   Bell, Search, ChevronRight, X, Menu, Download, MapPin, FolderOpen, BarChart2,
-  Briefcase
+  Briefcase, BookOpen
 } from "lucide-react";
 import API from "../services/api";
 
@@ -19,6 +19,7 @@ const navItems = [
   { label: "Advances",       icon: Banknote,      path: "/advances" },
   { label: "Weekly Payroll", icon: Calculator,    path: "/payroll" },
   { label: "Reports",        icon: BarChart2,     path: "/reports" },
+  { label: "Statements",     icon: BookOpen,      path: "/statements" },
   { label: "Settings",       icon: Sliders,       path: "/settings" },
 ];
 
