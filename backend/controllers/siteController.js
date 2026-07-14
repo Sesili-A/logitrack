@@ -2,7 +2,10 @@ const Site = require("../models/Site");
 
 exports.getSites = async (req, res) => {
   try {
-    const sites = await Site.find({ active: true, adminId: req.user.id }).sort({ name: 1 });
+    const sites = await Site.find({ 
+      $or: [{ active: true }, { active: { $exists: false } }], 
+      adminId: req.user.id 
+    }).sort({ name: 1 });
     res.json(sites);
   } catch (err) { res.status(500).json(err); }
 };
