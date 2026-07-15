@@ -9,12 +9,19 @@ const mongoose = require("mongoose");
 exports.getEmployeeLedger = async (req, res) => {
   try {
     const { employeeId } = req.params;
-    const { year } = req.query;
+    const { year, month } = req.query;
     
     if (!year) return res.status(400).json({ msg: "Year is required" });
 
-    const startDate = new Date(`${year}-01-01T00:00:00.000Z`);
-    const endDate = new Date(`${year}-12-31T23:59:59.999Z`);
+    let startDate, endDate;
+    if (month && month !== "all") {
+      const m = parseInt(month) - 1;
+      startDate = new Date(year, m, 1, 0, 0, 0, 0);
+      endDate = new Date(year, m + 1, 0, 23, 59, 59, 999);
+    } else {
+      startDate = new Date(`${year}-01-01T00:00:00.000Z`);
+      endDate = new Date(`${year}-12-31T23:59:59.999Z`);
+    }
 
     const employee = await Employee.findById(employeeId);
     if (!employee) return res.status(404).json({ msg: "Employee not found" });
@@ -35,6 +42,8 @@ exports.getEmployeeLedger = async (req, res) => {
 
     let ledger = [];
     let runningBalance = 0;
+    
+    let effectiveDays = 0;
 
     // Process Attendances (Credit)
     attendances.forEach(att => {
@@ -44,12 +53,15 @@ exports.getEmployeeLedger = async (req, res) => {
         
         if (att.status === "Present") {
           earned = employee.dailyWage;
+          effectiveDays += 1;
         } else if (att.status === "Half-Day") {
           earned = employee.dailyWage / 2;
           wageStr = "Half-Day Wage";
+          effectiveDays += 0.5;
         } else if (att.status === "Overtime") {
           earned = employee.dailyWage + (att.overtimeHours * (employee.dailyWage / 8));
           wageStr = `Wage + Overtime (${att.overtimeHours}hrs)`;
+          effectiveDays += 1;
         }
 
         ledger.push({
@@ -74,15 +86,27 @@ exports.getEmployeeLedger = async (req, res) => {
     // Sort chronologically
     ledger.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Calculate running balance
+    // Calculate running balance and summary stats
+    let grossSalary = 0;
+    let totalAdvances = 0;
+    
     ledger.forEach(entry => {
       runningBalance += (entry.credit - entry.debit);
       entry.balance = runningBalance;
+      grossSalary += entry.credit;
+      totalAdvances += entry.debit;
     });
 
     res.json({
       employee: { name: employee.name, phone: employee.phone, category: employee.category },
       year,
+      month: month || "all",
+      summary: {
+        effectiveDays,
+        grossSalary,
+        totalAdvances,
+        closingBalance: runningBalance
+      },
       ledger
     });
   } catch (err) {
@@ -94,12 +118,19 @@ exports.getEmployeeLedger = async (req, res) => {
 exports.getSiteLedger = async (req, res) => {
   try {
     const { siteName } = req.params;
-    const { year } = req.query;
+    const { year, month } = req.query;
 
     if (!year) return res.status(400).json({ msg: "Year is required" });
 
-    const startDate = new Date(`${year}-01-01T00:00:00.000Z`);
-    const endDate = new Date(`${year}-12-31T23:59:59.999Z`);
+    let startDate, endDate;
+    if (month && month !== "all") {
+      const m = parseInt(month) - 1;
+      startDate = new Date(year, m, 1, 0, 0, 0, 0);
+      endDate = new Date(year, m + 1, 0, 23, 59, 59, 999);
+    } else {
+      startDate = new Date(`${year}-01-01T00:00:00.000Z`);
+      endDate = new Date(`${year}-12-31T23:59:59.999Z`);
+    }
 
     // Fetch attendances at this site (Debit / Expense)
     const attendances = await Attendance.find({
@@ -179,15 +210,35 @@ exports.getSiteLedger = async (req, res) => {
     // Sort chronologically
     ledger.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Calculate running balance
+    // Calculate running balance and summary stats
+    let totalWages = 0;
+    let totalAdvances = 0;
+    let totalIncome = 0;
+
     ledger.forEach(entry => {
       runningBalance += (entry.credit - entry.debit);
       entry.balance = runningBalance;
+      
+      if (entry.credit > 0) totalIncome += entry.credit;
+      if (entry.debit > 0) {
+        if (entry.particulars.startsWith("Advance")) {
+          totalAdvances += entry.debit;
+        } else {
+          totalWages += entry.debit;
+        }
+      }
     });
 
     res.json({
       siteName,
       year,
+      month: month || "all",
+      summary: {
+        totalWages,
+        totalAdvances,
+        totalIncome,
+        closingBalance: runningBalance
+      },
       ledger
     });
   } catch (err) {
@@ -199,12 +250,19 @@ exports.getSiteLedger = async (req, res) => {
 exports.getProjectLedger = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { year } = req.query;
+    const { year, month } = req.query;
 
     if (!year) return res.status(400).json({ msg: "Year is required" });
 
-    const startDate = new Date(`${year}-01-01T00:00:00.000Z`);
-    const endDate = new Date(`${year}-12-31T23:59:59.999Z`);
+    let startDate, endDate;
+    if (month && month !== "all") {
+      const m = parseInt(month) - 1;
+      startDate = new Date(year, m, 1, 0, 0, 0, 0);
+      endDate = new Date(year, m + 1, 0, 23, 59, 59, 999);
+    } else {
+      startDate = new Date(`${year}-01-01T00:00:00.000Z`);
+      endDate = new Date(`${year}-12-31T23:59:59.999Z`);
+    }
 
     const project = await Project.findById(projectId);
     if (!project) return res.status(404).json({ msg: "Project not found" });
@@ -230,15 +288,22 @@ exports.getProjectLedger = async (req, res) => {
     // Sort
     ledger.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Calculate
+    // Calculate stats
+    let totalIncome = 0;
     ledger.forEach(entry => {
       runningBalance += entry.credit;
       entry.balance = runningBalance;
+      totalIncome += entry.credit;
     });
 
     res.json({
       project: { name: project.name, siteName: project.siteName },
       year,
+      month: month || "all",
+      summary: {
+        totalIncome,
+        closingBalance: runningBalance
+      },
       ledger
     });
   } catch (err) {
