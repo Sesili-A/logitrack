@@ -451,6 +451,9 @@ export default function Attendance() {
                   <select value={recSite || ""} onChange={e => setSite(emp._id, e.target.value)}>
                     <option value="" disabled>Select site</option>
                     {sites.map(s => <option key={s._id} value={s.name}>{s.name}</option>)}
+                    {recSite && !sites.find(s => s.name === recSite) && (
+                      <option value={recSite}>{recSite} (Inactive)</option>
+                    )}
                   </select>
                 </div>
               )}
@@ -529,6 +532,9 @@ export default function Attendance() {
                           <select value={recSite || ""} onChange={e => setSite(emp._id, e.target.value)} style={{ border: "none", background: "transparent", fontSize: "12px", color: "#0f172a", outline: "none", flex: 1 }}>
                             <option value="" disabled>Select site</option>
                             {sites.map(s => <option key={s._id} value={s.name}>{s.name}</option>)}
+                            {recSite && !sites.find(s => s.name === recSite) && (
+                              <option value={recSite}>{recSite} (Inactive)</option>
+                            )}
                           </select>
                         </div>
                       ) : <span style={{ fontSize: "12px", color: "#cbd5e1" }}>Not Applicable</span>}
